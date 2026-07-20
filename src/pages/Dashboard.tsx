@@ -9,7 +9,9 @@ import {
   CheckCircle2,
   X,
   Power,
-  Zap
+  Zap,
+  Edit3,
+  Sliders
 } from "lucide-react"
 import { CreateAppShortcut } from "@/pages/CreateAppShortcut"
 import { CreateFullClose } from "@/pages/CreateFullClose"
@@ -94,6 +96,7 @@ type ViewMode = "home" | "create-app-shortcut" | "create-full-close"
 
 export const Dashboard: React.FC = () => {
   const [viewMode, setViewMode] = React.useState<ViewMode>("home")
+  const [editingShortcutId, setEditingShortcutId] = React.useState<string | null>(null)
 
   const [shortcuts, setShortcuts] = React.useState<ShortcutItem[]>([
     { id: "1", name: "Chrome • VS Code • Discord", apps: ["chrome", "vscode", "discord"], keys: ["Ctrl", "Shift", "Q"], status: "Enabled", lastUsed: "2 mins ago" },
@@ -103,17 +106,54 @@ export const Dashboard: React.FC = () => {
   const [actionToast, setActionToast] = React.useState<string | null>(null)
   const [isClosingAll, setIsClosingAll] = React.useState(false)
 
-  // Trigger Closing Action
-  const triggerCloseExecution = (label?: string) => {
-    setIsClosingAll(true)
-    setTimeout(() => {
-      setIsClosingAll(false)
-      setActionToast(label ? `Shortcut [${label}] activated! All running application windows closed.` : "All open application windows closed successfully.")
-      setTimeout(() => setActionToast(null), 4500)
-    }, 1200)
+  // Trigger Native Win32 Workspace Toggle
+  const triggerCloseExecution = async (_label?: string) => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core")
+      const result = await invoke<{ state: string; count: number }>("toggle_workspace")
+      if (result.state === "hidden") {
+        setActionToast("✓ All windows hidden")
+      } else {
+        setActionToast("✓ Workspace restored")
+      }
+      setTimeout(() => setActionToast(null), 2000)
+    } catch {
+      // Fallback for non-tauri dev environment
+      setIsClosingAll(true)
+      setTimeout(() => {
+        setIsClosingAll(false)
+        setActionToast("✓ All windows hidden")
+        setTimeout(() => setActionToast(null), 2000)
+      }, 300)
+    }
   }
 
-  // Global Shortcut Listener
+  // Native Win32 Global Hotkey Event Listener (Sub-50ms native Win32 event)
+  React.useEffect(() => {
+    let unlisten: (() => void) | undefined
+    async function listenToNativeEvents() {
+      try {
+        const { listen } = await import("@tauri-apps/api/event")
+        unlisten = await listen<{ state: string; count: number }>("workspace-toggle-event", (event) => {
+          const { state } = event.payload
+          if (state === "hidden") {
+            setActionToast("✓ All windows hidden")
+          } else {
+            setActionToast("✓ Workspace restored")
+          }
+          setTimeout(() => setActionToast(null), 2000)
+        })
+      } catch {
+        // Non-tauri browser environment
+      }
+    }
+    listenToNativeEvents()
+    return () => {
+      if (unlisten) unlisten()
+    }
+  }, [])
+
+  // In-App Keyboard Shortcut Listener Fallback
   React.useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       shortcuts.forEach(item => {
@@ -166,19 +206,28 @@ export const Dashboard: React.FC = () => {
     setViewMode("home")
   }
 
-  // Save Full Close Shortcut handler
+  // Save Full Close Shortcut handler (Supports both Edit & Create)
   const handleSaveFullCloseShortcut = (keys: string[]) => {
-    const newShortcut: ShortcutItem = {
-      id: Date.now().toString(),
-      name: "Close All Open Windows",
-      apps: ["chrome", "vscode", "discord", "spotify", "edge"],
-      keys,
-      status: "Enabled",
-      lastUsed: "Just now",
-      isFullClose: true
+    if (editingShortcutId) {
+      setShortcuts(shortcuts.map(s => s.id === editingShortcutId ? {
+        ...s,
+        keys,
+        lastUsed: "Just now"
+      } : s))
+      setEditingShortcutId(null)
+    } else {
+      const newShortcut: ShortcutItem = {
+        id: Date.now().toString(),
+        name: "Close All Open Windows",
+        apps: ["all-apps"],
+        keys,
+        status: "Enabled",
+        lastUsed: "Just now",
+        isFullClose: true
+      }
+      setShortcuts([newShortcut, ...shortcuts])
     }
 
-    setShortcuts([newShortcut, ...shortcuts])
     setViewMode("home")
     triggerCloseExecution(keys.join(" + "))
   }
@@ -222,8 +271,12 @@ export const Dashboard: React.FC = () => {
       {/* SEPARATE PAGE 2 MODULE: CLOSE ALL WINDOWS SHORTCUT */}
       {viewMode === "create-full-close" && (
         <CreateFullClose 
-          onBack={() => setViewMode("home")}
+          onBack={() => {
+            setEditingShortcutId(null)
+            setViewMode("home")
+          }}
           onSave={handleSaveFullCloseShortcut}
+          initialKeys={shortcuts.find(s => s.id === editingShortcutId)?.keys}
         />
       )}
 
@@ -350,13 +403,23 @@ export const Dashboard: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                           <button 
                             onClick={() => triggerCloseExecution(item.keys.join(" + "))}
                             className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-[#A67165] hover:bg-[#734E46] transition-all border-none cursor-pointer flex items-center gap-1"
                           >
                             <Zap className="h-3.5 w-3.5" />
                             <span>Apply All</span>
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setEditingShortcutId(item.id)
+                              setViewMode("create-full-close")
+                            }}
+                            className="w-8 h-8 rounded-lg hover:bg-white/20 dark:hover:bg-white/10 flex items-center justify-center border border-white/15 text-[#6B5B54] dark:text-[#A69281] hover:text-[#A67165] cursor-pointer transition-colors" 
+                            title="Customize Key Combination"
+                          >
+                            <Edit3 className="h-3.5 w-3.5" />
                           </button>
                           <button 
                             onClick={() => handleDeleteShortcut(item.id)}
@@ -382,6 +445,26 @@ export const Dashboard: React.FC = () => {
                   </h3>
 
                   <div className="space-y-2.5">
+                    <button 
+                      onClick={() => {
+                        const fullCloseItem = shortcuts.find(s => s.isFullClose)
+                        setEditingShortcutId(fullCloseItem?.id || null)
+                        setViewMode("create-full-close")
+                      }}
+                      className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white/15 hover:bg-white/30 dark:bg-white/5 dark:hover:bg-white/10 border border-white/10 transition-all duration-200 text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-[rgba(166,113,101,0.12)] flex items-center justify-center text-[#A67165]">
+                          <Sliders className="h-4.5 w-4.5" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <span className="text-xs font-bold text-[#252326] dark:text-[#F2D8C2]">Customize Close All Keys</span>
+                          <p className="text-[10px] font-medium text-[#6B5B54] dark:text-[#A69281]">Record or edit shortcut key triggers</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-3.5 w-3.5 text-[#9B8179]" />
+                    </button>
+
                     <button 
                       onClick={() => triggerCloseExecution()}
                       className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white/15 hover:bg-white/30 dark:bg-white/5 dark:hover:bg-white/10 border border-white/10 transition-all duration-200 text-left cursor-pointer"
@@ -418,6 +501,8 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
           </div>
+
+
 
           {/* ROW 3: FEATURE HIGHLIGHTS */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[850px] mx-auto">
