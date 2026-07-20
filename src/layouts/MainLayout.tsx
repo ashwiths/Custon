@@ -20,7 +20,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   return (
     <div className="app-root flex h-screen w-screen overflow-hidden" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
-      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 relative z-10">
         <TopNavbar title={currentPage} darkMode={darkMode} setDarkMode={setDarkMode} />
         <main className="flex-1 overflow-y-auto" style={{ padding: "32px" }}>
           <div
