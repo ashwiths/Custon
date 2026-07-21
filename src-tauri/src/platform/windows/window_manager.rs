@@ -6,7 +6,8 @@ use windows_sys::Win32::System::Threading::{
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
-use crate::workspace_state::{ToggleState, WindowSnapshot, WorkspaceState};
+use crate::common::models::{RunningAppInfo, ToggleState, WindowSnapshot, WorkspaceState};
+use crate::platform::PlatformWindowManager;
 
 fn get_process_exe_name(pid: u32) -> String {
     unsafe {
@@ -175,18 +176,10 @@ unsafe extern "system" fn enum_windows_callback(hwnd: HWND, lparam: LPARAM) -> B
     1
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct RunningAppInfo {
-    pub id: String,
-    pub name: String,
-    pub desc: String,
-    pub exe_name: String,
-}
+pub struct WindowsWindowManager;
 
-pub struct WindowManager;
-
-impl WindowManager {
-    pub fn get_running_applications() -> Vec<RunningAppInfo> {
+impl PlatformWindowManager for WindowsWindowManager {
+    fn get_running_applications() -> Vec<RunningAppInfo> {
         let mut context = EnumContext {
             snapshots: Vec::new(),
         };
@@ -272,8 +265,7 @@ impl WindowManager {
         running_apps
     }
 
-    pub fn toggle(state: &WorkspaceState) -> (ToggleState, usize) {
-        // Prevent double execution / race conditions if shortcut is spammed
+    fn toggle(state: &WorkspaceState) -> (ToggleState, usize) {
         if !state.acquire_lock() {
             let current = *state.toggle_state.lock().unwrap();
             return (current, 0);
@@ -297,7 +289,7 @@ impl WindowManager {
         result
     }
 
-    pub fn toggle_target_apps(
+    fn toggle_target_apps(
         state: &WorkspaceState,
         shortcut_id: &str,
         target_apps: &[String],
@@ -331,6 +323,90 @@ impl WindowManager {
         result
     }
 
+    fn restore_all_hidden(state: &WorkspaceState) -> usize {
+        let mut count = 0;
+        
+        // 1. Restore general workspace windows
+        count += Self::restore_all(state);
+
+        // 2. Restore shortcut-specific windows
+        let mut shortcut_windows = state.shortcut_windows.lock().unwrap();
+        let mut shortcut_states = state.shortcut_states.lock().unwrap();
+        
+        let keys_to_restore: Vec<String> = shortcut_windows.keys().cloned().collect();
+        for shortcut_id in keys_to_restore {
+            if let Some(saved_snapshots) = shortcut_windows.remove(&shortcut_id) {
+                count += saved_snapshots.len();
+                for snapshot in saved_snapshots.iter().rev() {
+                    unsafe {
+                        if IsWindow(snapshot.hwnd) == 0 {
+                            continue;
+                        }
+
+                        SetWindowPlacement(snapshot.hwnd, &snapshot.placement);
+
+                        SetWindowPos(
+                            snapshot.hwnd,
+                            HWND_TOP,
+                            snapshot.rect.left,
+                            snapshot.rect.top,
+                            snapshot.rect.right - snapshot.rect.left,
+                            snapshot.rect.bottom - snapshot.rect.top,
+                            SWP_NOACTIVATE | SWP_SHOWWINDOW,
+                        );
+
+                        if snapshot.was_maximized {
+                            ShowWindowAsync(snapshot.hwnd, SW_SHOWMAXIMIZED as i32);
+                        } else if snapshot.was_minimized {
+                            ShowWindowAsync(snapshot.hwnd, SW_SHOWMINIMIZED as i32);
+                        } else {
+                            ShowWindowAsync(snapshot.hwnd, SW_SHOW as i32);
+                        }
+                    }
+                }
+            }
+            shortcut_states.insert(shortcut_id, ToggleState::Visible);
+        }
+
+        count
+    }
+
+    fn close_target_apps(target_apps: &[String]) -> usize {
+        let mut context = EnumContext {
+            snapshots: Vec::new(),
+        };
+
+        unsafe {
+            EnumWindows(
+                Some(enum_windows_callback),
+                &mut context as *mut EnumContext as LPARAM,
+            );
+        }
+
+        let filtered_snapshots: Vec<WindowSnapshot> = context
+            .snapshots
+            .into_iter()
+            .filter(|snapshot| {
+                let exe_name = get_process_exe_name(snapshot.process_id);
+                matches_target_apps(&exe_name, &snapshot.title, target_apps)
+            })
+            .collect();
+
+        let count = filtered_snapshots.len();
+
+        for snapshot in &filtered_snapshots {
+            unsafe {
+                PostMessageW(snapshot.hwnd, WM_CLOSE, 0, 0);
+            }
+        }
+
+        count
+    }
+}
+
+// ─── Private Helpers (Windows Specific) ──────────────────────────────────────
+
+impl WindowsWindowManager {
     fn hide_all(state: &WorkspaceState) -> usize {
         let mut context = EnumContext {
             snapshots: Vec::new(),
@@ -471,85 +547,4 @@ impl WindowManager {
 
         count
     }
-
-    pub fn close_target_apps(target_apps: &[String]) -> usize {
-        let mut context = EnumContext {
-            snapshots: Vec::new(),
-        };
-
-        unsafe {
-            EnumWindows(
-                Some(enum_windows_callback),
-                &mut context as *mut EnumContext as LPARAM,
-            );
-        }
-
-        let filtered_snapshots: Vec<WindowSnapshot> = context
-            .snapshots
-            .into_iter()
-            .filter(|snapshot| {
-                let exe_name = get_process_exe_name(snapshot.process_id);
-                matches_target_apps(&exe_name, &snapshot.title, target_apps)
-            })
-            .collect();
-
-        let count = filtered_snapshots.len();
-
-        for snapshot in &filtered_snapshots {
-            unsafe {
-                PostMessageW(snapshot.hwnd, WM_CLOSE, 0, 0);
-            }
-        }
-
-        count
-    }
-
-    pub fn restore_all_hidden(state: &WorkspaceState) -> usize {
-        let mut count = 0;
-        
-        // 1. Restore general workspace windows
-        count += Self::restore_all(state);
-
-        // 2. Restore shortcut-specific windows
-        let mut shortcut_windows = state.shortcut_windows.lock().unwrap();
-        let mut shortcut_states = state.shortcut_states.lock().unwrap();
-        
-        let keys_to_restore: Vec<String> = shortcut_windows.keys().cloned().collect();
-        for shortcut_id in keys_to_restore {
-            if let Some(saved_snapshots) = shortcut_windows.remove(&shortcut_id) {
-                count += saved_snapshots.len();
-                for snapshot in saved_snapshots.iter().rev() {
-                    unsafe {
-                        if IsWindow(snapshot.hwnd) == 0 {
-                            continue;
-                        }
-
-                        SetWindowPlacement(snapshot.hwnd, &snapshot.placement);
-
-                        SetWindowPos(
-                            snapshot.hwnd,
-                            HWND_TOP,
-                            snapshot.rect.left,
-                            snapshot.rect.top,
-                            snapshot.rect.right - snapshot.rect.left,
-                            snapshot.rect.bottom - snapshot.rect.top,
-                            SWP_NOACTIVATE | SWP_SHOWWINDOW,
-                        );
-
-                        if snapshot.was_maximized {
-                            ShowWindowAsync(snapshot.hwnd, SW_SHOWMAXIMIZED as i32);
-                        } else if snapshot.was_minimized {
-                            ShowWindowAsync(snapshot.hwnd, SW_SHOWMINIMIZED as i32);
-                        } else {
-                            ShowWindowAsync(snapshot.hwnd, SW_SHOW as i32);
-                        }
-                    }
-                }
-            }
-            shortcut_states.insert(shortcut_id, ToggleState::Visible);
-        }
-
-        count
-    }
 }
-

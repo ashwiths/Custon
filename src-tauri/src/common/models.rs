@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+
+#[cfg(target_os = "windows")]
 use windows_sys::Win32::Foundation::{HWND, RECT};
+#[cfg(target_os = "windows")]
 use windows_sys::Win32::UI::WindowsAndMessaging::WINDOWPLACEMENT;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -13,10 +16,13 @@ pub enum ToggleState {
 
 #[derive(Clone)]
 pub struct WindowSnapshot {
+    #[cfg(target_os = "windows")]
     pub hwnd: HWND,
     pub process_id: u32,
     pub title: String,
+    #[cfg(target_os = "windows")]
     pub placement: WINDOWPLACEMENT,
+    #[cfg(target_os = "windows")]
     pub rect: RECT,
     pub z_order_index: usize,
     pub monitor: isize,
@@ -75,3 +81,22 @@ impl WorkspaceState {
     }
 }
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct ShortcutConfig {
+    pub id: String,
+    pub name: String,
+    pub apps: Vec<String>,
+    pub keys: Vec<String>,
+    #[serde(rename = "isFullClose")]
+    pub is_full_close: Option<bool>,
+    #[serde(rename = "executionMode")]
+    pub execution_mode: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct RunningAppInfo {
+    pub id: String,
+    pub name: String,
+    pub desc: String,
+    pub exe_name: String,
+}

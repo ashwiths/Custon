@@ -1,140 +1,17 @@
-pub mod autostart;
-pub mod hotkey_manager;
-pub mod window_manager;
-pub mod workspace_state;
+pub mod common;
+pub mod platform;
+pub mod commands;
 
 use std::sync::Arc;
-use tauri::{AppHandle, Emitter, State};
-
-use hotkey_manager::{HotkeyManager, ShortcutConfig};
-use window_manager::WindowManager;
-use workspace_state::{ToggleState, WorkspaceState};
-
-#[tauri::command]
-fn toggle_workspace(
-    state: State<'_, Arc<WorkspaceState>>,
-    app_handle: AppHandle,
-) -> Result<serde_json::Value, String> {
-    let (new_state, count) = WindowManager::toggle(&state);
-
-    let state_str = match new_state {
-        ToggleState::Visible => "visible",
-        ToggleState::Hidden => "hidden",
-    };
-
-    let payload = serde_json::json!({
-        "state": state_str,
-        "count": count
-    });
-
-    let _ = app_handle.emit("workspace-toggle-event", payload.clone());
-
-    Ok(payload)
-}
-
-#[tauri::command]
-fn toggle_target_shortcut(
-    state: State<'_, Arc<WorkspaceState>>,
-    app_handle: AppHandle,
-    shortcut_id: String,
-    target_apps: Vec<String>,
-    mode: Option<String>,
-) -> Result<serde_json::Value, String> {
-    let mode_str = mode.unwrap_or_else(|| "stealth".to_string());
-    let (new_state, count) = WindowManager::toggle_target_apps(
-        &state,
-        &shortcut_id,
-        &target_apps,
-        &mode_str,
-    );
-
-    let state_str = match new_state {
-        ToggleState::Visible => "visible",
-        ToggleState::Hidden => "hidden",
-    };
-
-    let payload = serde_json::json!({
-        "id": shortcut_id,
-        "state": state_str,
-        "count": count,
-        "apps": target_apps,
-        "mode": mode_str
-    });
-
-    let _ = app_handle.emit("shortcut-trigger-event", payload.clone());
-    let _ = app_handle.emit("workspace-toggle-event", payload.clone());
-
-    Ok(payload)
-}
-
-#[tauri::command]
-fn sync_shortcuts(
-    hotkey_mgr: State<'_, Arc<HotkeyManager>>,
-    shortcuts: Vec<ShortcutConfig>,
-) -> Result<bool, String> {
-    hotkey_mgr.sync_shortcuts(shortcuts);
-    Ok(true)
-}
-
-#[tauri::command]
-fn set_workspace_hotkey(
-    hotkey_mgr: State<'_, Arc<HotkeyManager>>,
-    key_combo: String,
-) -> Result<bool, String> {
-    hotkey_mgr.update_hotkey(&key_combo);
-    Ok(true)
-}
-
-#[tauri::command]
-fn get_workspace_state(state: State<'_, Arc<WorkspaceState>>) -> Result<serde_json::Value, String> {
-    let current_state = *state.toggle_state.lock().unwrap();
-    let saved_count = state.saved_windows.lock().unwrap().len();
-
-    let state_str = match current_state {
-        ToggleState::Visible => "visible",
-        ToggleState::Hidden => "hidden",
-    };
-
-    Ok(serde_json::json!({
-        "state": state_str,
-        "count": saved_count
-    }))
-}
-
-#[tauri::command]
-fn set_autostart(enable: bool) -> Result<bool, String> {
-    autostart::set_autostart(enable)
-}
-
-#[tauri::command]
-fn get_running_apps() -> Result<Vec<window_manager::RunningAppInfo>, String> {
-    Ok(WindowManager::get_running_applications())
-}
-
-#[tauri::command]
-fn get_autostart_status() -> Result<bool, String> {
-    Ok(autostart::is_autostart_enabled())
-}
-
-#[tauri::command]
-fn restore_all_hidden(
-    state: State<'_, Arc<WorkspaceState>>,
-    app_handle: AppHandle,
-) -> Result<usize, String> {
-    let count = WindowManager::restore_all_hidden(&state);
-    
-    let _ = app_handle.emit("workspace-toggle-event", serde_json::json!({
-        "state": "visible",
-        "count": 0
-    }));
-
-    Ok(count)
-}
+use crate::common::models::{ShortcutConfig, WorkspaceState};
+use crate::platform::current_platform::{ShortcutManager, SystemManager};
+use crate::platform::{PlatformShortcutManager, PlatformSystemManager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let workspace_state = Arc::new(WorkspaceState::new());
-    let hotkey_mgr = Arc::new(HotkeyManager::new());
+    let hotkey_mgr = Arc::new(ShortcutManager::new());
+    let system_mgr = SystemManager::new();
 
     let state_for_setup = workspace_state.clone();
     let hotkey_for_setup = hotkey_mgr.clone();
@@ -143,7 +20,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(workspace_state)
         .manage(hotkey_mgr)
+        .manage(system_mgr)
         .setup(move |app| {
+            // Build the system tray icon programmatically (cross-platform helper)
             let default_icon = app.default_window_icon().cloned();
             let tray_app_handle = app.handle().clone();
             
@@ -162,6 +41,7 @@ pub fn run() {
                     .build(app)?;
             }
 
+            // Start the global hotkeys listener loop
             hotkey_for_setup.start_listener(
                 app.handle().clone(),
                 state_for_setup,
@@ -177,18 +57,16 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            toggle_workspace,
-            toggle_target_shortcut,
-            sync_shortcuts,
-            set_workspace_hotkey,
-            get_workspace_state,
-            get_running_apps,
-            set_autostart,
-            get_autostart_status,
-            restore_all_hidden
+            commands::system::toggle_workspace,
+            commands::system::toggle_target_shortcut,
+            commands::shortcut::sync_shortcuts,
+            commands::shortcut::set_workspace_hotkey,
+            commands::system::get_workspace_state,
+            commands::system::get_running_apps,
+            commands::settings::set_autostart,
+            commands::settings::get_autostart_status,
+            commands::system::restore_all_hidden
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
-
-

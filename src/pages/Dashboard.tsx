@@ -472,18 +472,6 @@ export const Dashboard: React.FC = () => {
             <h2 className="text-[20px] font-bold text-[#252326] dark:text-[#F2D8C2]">
               Your workspace, <span className="text-[#A67165] dark:text-[#C98D74]">one target shortcut</span> away.
             </h2>
-            <div className="flex flex-wrap items-center gap-2.5 mt-1">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Target App Engine Active & Global Hotkeys Registered</span>
-              </div>
-              <button 
-                onClick={handleToggleTestAutostartBanner}
-                className="px-3 py-1 rounded-full border border-[#A67165]/30 bg-[#A67165]/10 hover:bg-[#A67165]/20 text-[11px] font-bold text-[#A67165] dark:text-[#C98D74] transition-all border-none cursor-pointer"
-              >
-                {autostartState === "prompt" ? "Simulate Rejection (Test Warning)" : autostartState === "warning" ? "Reset to Permission Prompt" : "Test Background Permission Banner"}
-              </button>
-            </div>
           </div>
 
           {/* ROW 1: 2 DISTINCT HERO BOXES */}

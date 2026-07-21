@@ -7,40 +7,21 @@ use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::*;
 use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
-use crate::window_manager::WindowManager;
-use crate::workspace_state::{ToggleState, WorkspaceState};
+use crate::common::models::{ShortcutConfig, ToggleState, WorkspaceState};
+use crate::platform::windows::window_manager::WindowsWindowManager as WindowManager;
+use crate::platform::{PlatformShortcutManager, PlatformWindowManager};
 
 const BASE_HOTKEY_ID: i32 = 0x9000;
 const WM_UPDATE_HOTKEYS: u32 = WM_USER + 0x101;
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub struct ShortcutConfig {
-    pub id: String,
-    pub name: String,
-    pub apps: Vec<String>,
-    pub keys: Vec<String>,
-    #[serde(rename = "isFullClose")]
-    pub is_full_close: Option<bool>,
-    #[serde(rename = "executionMode")]
-    pub execution_mode: Option<String>,
-}
-
-pub struct HotkeyManager {
+pub struct WindowsShortcutManager {
     is_running: AtomicBool,
     tx: Mutex<Option<mpsc::Sender<Vec<ShortcutConfig>>>>,
     listener_thread_id: Mutex<u32>,
 }
 
-impl HotkeyManager {
-    pub fn new() -> Self {
-        Self {
-            is_running: AtomicBool::new(false),
-            tx: Mutex::new(None),
-            listener_thread_id: Mutex::new(0),
-        }
-    }
-
-    pub fn parse_key_combo(combo_str: &str) -> (u32, u32) {
+impl WindowsShortcutManager {
+    fn parse_key_combo(combo_str: &str) -> (u32, u32) {
         let parts: Vec<&str> = combo_str.split('+').map(|s| s.trim()).collect();
         let mut modifiers: u32 = MOD_NOREPEAT;
         let mut vk_code: u32 = 0;
@@ -86,8 +67,18 @@ impl HotkeyManager {
 
         (modifiers, vk_code)
     }
+}
 
-    pub fn start_listener(
+impl PlatformShortcutManager for WindowsShortcutManager {
+    fn new() -> Self {
+        Self {
+            is_running: AtomicBool::new(false),
+            tx: Mutex::new(None),
+            listener_thread_id: Mutex::new(0),
+        }
+    }
+
+    fn start_listener(
         &self,
         app_handle: AppHandle,
         workspace_state: Arc<WorkspaceState>,
@@ -209,7 +200,7 @@ impl HotkeyManager {
         }
     }
 
-    pub fn sync_shortcuts(&self, shortcuts: Vec<ShortcutConfig>) {
+    fn sync_shortcuts(&self, shortcuts: Vec<ShortcutConfig>) {
         let tx_guard = self.tx.lock().unwrap();
         let thread_id = *self.listener_thread_id.lock().unwrap();
 
@@ -223,7 +214,7 @@ impl HotkeyManager {
         }
     }
 
-    pub fn update_hotkey(&self, new_combo: &str) {
+    fn update_hotkey(&self, new_combo: &str) {
         let fallback_config = ShortcutConfig {
             id: "full-close".to_string(),
             name: "Close All Open Windows".to_string(),
@@ -235,4 +226,3 @@ impl HotkeyManager {
         self.sync_shortcuts(vec![fallback_config]);
     }
 }
-
