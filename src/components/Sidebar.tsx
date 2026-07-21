@@ -53,8 +53,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
 
       {/* Nav */}
       <nav className="flex-1" style={{ padding: "16px 12px" }}>
-        <div style={{ marginBottom: "8px", padding: "0 8px" }}>
-          <span style={{ fontSize: "10px", fontWeight: 600, color: "rgba(242,216,194,0.3)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+        <div style={{ marginBottom: "8px", padding: "0 12px" }}>
+          <span style={{ fontSize: "10px", fontWeight: 600, color: "rgba(242,216,194,0.3)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
             Navigation
           </span>
         </div>
@@ -68,12 +68,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
                 onClick={() => setCurrentPage(item.id)}
                 className={cn("nav-item", isActive && "active")}
               >
-                <Icon className="h-4 w-4" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.65 }} />
+                <Icon className="h-4 w-4 animate-nav-icon" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.65 }} />
                 <span>{item.label}</span>
                 {isActive && (
                   <div
-                    className="ml-auto rounded-full"
-                    style={{ width: "6px", height: "6px", background: "rgba(255,255,255,0.8)" }}
+                    className="ml-auto rounded-full shadow-glow"
+                    style={{ 
+                      width: "6px", 
+                      height: "6px", 
+                      background: "#ffffff",
+                      boxShadow: "0 0 8px #ffffff"
+                    }}
                   />
                 )}
               </button>
@@ -85,21 +90,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
       {/* Footer */}
       <div
         style={{
-          padding: "20px 24px",
+          padding: "20px 12px",
           borderTop: "1px solid rgba(255,255,255,0.06)",
         }}
       >
         <div
           className="rounded-xl flex items-center gap-3"
           style={{
-            background: "rgba(255,255,255,0.04)",
-            padding: "12px 14px",
-            border: "1px solid rgba(255,255,255,0.06)",
+            background: "rgba(255,255,255,0.03)",
+            padding: "12px 12px",
+            border: "1px solid rgba(255,255,255,0.05)",
           }}
         >
           <div
             className="rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ width: "28px", height: "28px", background: "rgba(166,113,101,0.3)" }}
+            style={{ 
+              width: "28px", 
+              height: "28px", 
+              background: "rgba(166,113,101,0.2)",
+              border: "1px solid rgba(166,113,101,0.25)"
+            }}
           >
             <Box className="h-3.5 w-3.5" style={{ color: "#A67165" }} />
           </div>

@@ -7,7 +7,14 @@ import { type ActivePage } from "@/components/Sidebar"
 
 function App() {
   const [currentPage, setCurrentPage] = useState<ActivePage>("dashboard")
-  const [darkMode, setDarkMode] = useState(true)
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem("settings_dark_mode")
+      return saved !== "false"
+    } catch {
+      return true
+    }
+  })
 
   useEffect(() => {
     const root = window.document.documentElement
@@ -16,7 +23,47 @@ function App() {
     } else {
       root.classList.remove("dark")
     }
+    try {
+      localStorage.setItem("settings_dark_mode", String(darkMode))
+    } catch {
+      // Ignore
+    }
   }, [darkMode])
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined
+    async function listenToClose() {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window")
+        const currentWindow = getCurrentWindow()
+        
+        unlisten = await currentWindow.onCloseRequested(async (event) => {
+          const minimizeToTray = localStorage.getItem("settings_minimize_to_tray") !== "false"
+          if (minimizeToTray) {
+            event.preventDefault()
+            await currentWindow.hide()
+          } else {
+            // Restore all hidden windows before quitting to ensure no orphan hidden windows
+            try {
+              const { invoke } = await import("@tauri-apps/api/core")
+              await invoke("restore_all_hidden")
+            } catch (e) {
+              console.error("Failed to restore windows on exit", e)
+            }
+          }
+        })
+      } catch (e) {
+        console.warn("Not in Tauri environment, window close handler skipped", e)
+      }
+    }
+    listenToClose()
+
+    return () => {
+      if (unlisten) {
+        unlisten()
+      }
+    }
+  }, [])
 
   const renderPage = () => {
     switch (currentPage) {

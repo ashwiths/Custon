@@ -116,6 +116,21 @@ fn get_autostart_status() -> Result<bool, String> {
     Ok(autostart::is_autostart_enabled())
 }
 
+#[tauri::command]
+fn restore_all_hidden(
+    state: State<'_, Arc<WorkspaceState>>,
+    app_handle: AppHandle,
+) -> Result<usize, String> {
+    let count = WindowManager::restore_all_hidden(&state);
+    
+    let _ = app_handle.emit("workspace-toggle-event", serde_json::json!({
+        "state": "visible",
+        "count": 0
+    }));
+
+    Ok(count)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let workspace_state = Arc::new(WorkspaceState::new());
@@ -129,6 +144,24 @@ pub fn run() {
         .manage(workspace_state)
         .manage(hotkey_mgr)
         .setup(move |app| {
+            let default_icon = app.default_window_icon().cloned();
+            let tray_app_handle = app.handle().clone();
+            
+            if let Some(icon) = default_icon {
+                let _tray = tauri::tray::TrayIconBuilder::new()
+                    .icon(icon)
+                    .on_tray_icon_event(move |_, event| {
+                        if let tauri::tray::TrayIconEvent::Click { .. } = event {
+                            use tauri::Manager;
+                            if let Some(window) = tray_app_handle.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                    })
+                    .build(app)?;
+            }
+
             hotkey_for_setup.start_listener(
                 app.handle().clone(),
                 state_for_setup,
@@ -151,7 +184,8 @@ pub fn run() {
             get_workspace_state,
             get_running_apps,
             set_autostart,
-            get_autostart_status
+            get_autostart_status,
+            restore_all_hidden
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

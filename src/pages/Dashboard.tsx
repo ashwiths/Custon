@@ -370,7 +370,7 @@ export const Dashboard: React.FC = () => {
       <div className="ambient-glow bg-[#C98D74] w-[400px] h-[400px] top-[15%] right-[-100px] opacity-[0.14]"></div>
 
       {/* Action Notification Toast */}
-      {actionToast && (
+      {actionToast && localStorage.getItem("settings_show_toasts") !== "false" && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#252326] text-[#F2D8C2] border border-[#A67165] p-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-fade-up max-w-[420px]">
           <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
             <CheckCircle2 className="h-5 w-5" />
@@ -488,35 +488,7 @@ export const Dashboard: React.FC = () => {
 
           {/* ROW 1: 2 DISTINCT HERO BOXES */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-            {/* BOX 1: CREATE APPLICATION SHORTCUT */}
-            <div 
-              className="glass-card relative overflow-hidden p-8 flex flex-col items-center justify-center text-center transition-all duration-220 hover:scale-[1.02] border-[rgba(255,255,255,0.28)]"
-              style={{ borderRadius: "24px" }}
-            >
-              <div className="relative mb-4 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-2xl bg-white/90 dark:bg-white/10 flex items-center justify-center text-[#A67165] border border-white/50 shadow-md">
-                  <Keyboard className="h-8 w-8" />
-                </div>
-              </div>
-
-              <h3 className="text-[20px] font-bold text-[#252326] dark:text-[#F2D8C2] mb-1.5 leading-tight">
-                Create Target App Shortcut
-              </h3>
-
-              <p className="text-[13px] font-medium text-[#6B5B54] dark:text-[#A69281] mb-6 max-w-[280px] leading-relaxed">
-                Hide or close specific background target apps (Chrome, VS Code, AI) with custom hotkeys during exams.
-              </p>
-
-              <button 
-                onClick={() => setViewMode("create-app-shortcut")}
-                className="w-full flex items-center justify-center gap-2 text-[16px] font-semibold text-white bg-gradient-to-r from-[#A67165] to-[#734E46] hover:from-[#734E46] hover:to-[#A67165] transition-all duration-200 shadow-lg border-none cursor-pointer py-3.5 rounded-2xl"
-              >
-                <Plus className="h-5 w-5" />
-                <span>Create Target App Shortcut</span>
-              </button>
-            </div>
-
-            {/* BOX 2: FULL CLOSE ALL WINDOWS SHORTCUT */}
+            {/* BOX 1: FULL CLOSE ALL WINDOWS SHORTCUT */}
             <div 
               className="glass-card relative overflow-hidden p-8 flex flex-col items-center justify-center text-center transition-all duration-220 hover:scale-[1.02] border-[rgba(255,255,255,0.28)]"
               style={{ borderRadius: "24px" }}
@@ -541,6 +513,34 @@ export const Dashboard: React.FC = () => {
               >
                 <Plus className="h-5 w-5" />
                 <span>Create Full Close Shortcut</span>
+              </button>
+            </div>
+
+            {/* BOX 2: CREATE APPLICATION SHORTCUT */}
+            <div 
+              className="glass-card relative overflow-hidden p-8 flex flex-col items-center justify-center text-center transition-all duration-220 hover:scale-[1.02] border-[rgba(255,255,255,0.28)]"
+              style={{ borderRadius: "24px" }}
+            >
+              <div className="relative mb-4 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-2xl bg-white/90 dark:bg-white/10 flex items-center justify-center text-[#A67165] border border-white/50 shadow-md">
+                  <Keyboard className="h-8 w-8" />
+                </div>
+              </div>
+
+              <h3 className="text-[20px] font-bold text-[#252326] dark:text-[#F2D8C2] mb-1.5 leading-tight">
+                Create Target App Shortcut
+              </h3>
+
+              <p className="text-[13px] font-medium text-[#6B5B54] dark:text-[#A69281] mb-6 max-w-[280px] leading-relaxed">
+                Hide or close specific background target apps (Chrome, VS Code, AI) with custom hotkeys during exams.
+              </p>
+
+              <button 
+                onClick={() => setViewMode("create-app-shortcut")}
+                className="w-full flex items-center justify-center gap-2 text-[16px] font-semibold text-white bg-gradient-to-r from-[#A67165] to-[#734E46] hover:from-[#734E46] hover:to-[#A67165] transition-all duration-200 shadow-lg border-none cursor-pointer py-3.5 rounded-2xl"
+              >
+                <Plus className="h-5 w-5" />
+                <span>Create Target App Shortcut</span>
               </button>
             </div>
           </div>

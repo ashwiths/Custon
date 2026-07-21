@@ -94,7 +94,14 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
   const [shortcutName, setShortcutName] = React.useState("")
   const [selectedApps, setSelectedApps] = React.useState<string[]>([])
   const [keyCombo, setKeyCombo] = React.useState("")
-  const [executionMode, setExecutionMode] = React.useState<"stealth" | "close">("stealth")
+  const [executionMode, setExecutionMode] = React.useState<"stealth" | "close">(() => {
+    try {
+      const mode = localStorage.getItem("settings_default_execution_mode")
+      return (mode === "close" ? "close" : "stealth")
+    } catch {
+      return "stealth"
+    }
+  })
   const [searchQuery, setSearchQuery] = React.useState("")
   const [isRecording, setIsRecording] = React.useState(false)
   const [customAppName, setCustomAppName] = React.useState("")

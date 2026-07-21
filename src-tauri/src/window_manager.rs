@@ -503,5 +503,53 @@ impl WindowManager {
 
         count
     }
+
+    pub fn restore_all_hidden(state: &WorkspaceState) -> usize {
+        let mut count = 0;
+        
+        // 1. Restore general workspace windows
+        count += Self::restore_all(state);
+
+        // 2. Restore shortcut-specific windows
+        let mut shortcut_windows = state.shortcut_windows.lock().unwrap();
+        let mut shortcut_states = state.shortcut_states.lock().unwrap();
+        
+        let keys_to_restore: Vec<String> = shortcut_windows.keys().cloned().collect();
+        for shortcut_id in keys_to_restore {
+            if let Some(saved_snapshots) = shortcut_windows.remove(&shortcut_id) {
+                count += saved_snapshots.len();
+                for snapshot in saved_snapshots.iter().rev() {
+                    unsafe {
+                        if IsWindow(snapshot.hwnd) == 0 {
+                            continue;
+                        }
+
+                        SetWindowPlacement(snapshot.hwnd, &snapshot.placement);
+
+                        SetWindowPos(
+                            snapshot.hwnd,
+                            HWND_TOP,
+                            snapshot.rect.left,
+                            snapshot.rect.top,
+                            snapshot.rect.right - snapshot.rect.left,
+                            snapshot.rect.bottom - snapshot.rect.top,
+                            SWP_NOACTIVATE | SWP_SHOWWINDOW,
+                        );
+
+                        if snapshot.was_maximized {
+                            ShowWindowAsync(snapshot.hwnd, SW_SHOWMAXIMIZED as i32);
+                        } else if snapshot.was_minimized {
+                            ShowWindowAsync(snapshot.hwnd, SW_SHOWMINIMIZED as i32);
+                        } else {
+                            ShowWindowAsync(snapshot.hwnd, SW_SHOW as i32);
+                        }
+                    }
+                }
+            }
+            shortcut_states.insert(shortcut_id, ToggleState::Visible);
+        }
+
+        count
+    }
 }
 
