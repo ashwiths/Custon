@@ -7,7 +7,7 @@ export const About: React.FC = () => {
     <div className="space-y-6 animate-fade-up">
       {/* Page Title */}
       <div className="flex flex-col gap-2">
-        <h2 className="page-title">About Custom</h2>
+        <h2 className="page-title">About Custun</h2>
         <p className="body-text">Learn more about the systems powering this desktop application.</p>
       </div>
 
@@ -28,9 +28,9 @@ export const About: React.FC = () => {
                 boxShadow: "0 4px 16px rgba(166,113,101,0.3)",
               }}
             >
-              <Box className="h-8 w-8 animate-pulse" />
+              <span className="text-2xl font-black select-none animate-pulse" style={{ fontFamily: "system-ui, sans-serif" }}>C</span>
             </div>
-            <h3 className="section-title" style={{ fontSize: "24px", color: "#252326" }}>Custom Desktop</h3>
+            <h3 className="section-title" style={{ fontSize: "24px", color: "#252326" }}>Custun Desktop</h3>
             <p className="text-sm text-[#6B5B54] mt-1.5">A production-ready Tauri + React application boilerplate.</p>
             <div 
               className="mt-4 px-3.5 py-1 rounded-full text-xs font-mono font-bold"
@@ -84,7 +84,7 @@ export const About: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-[#6B5B54]" style={{ padding: "20px 24px 28px 24px" }}>
             <p className="body-text" style={{ fontSize: "14px", lineHeight: "1.6" }}>
-              Custom is built on open-source technologies under standard permissive developer licensing. It utilizes rust-safe system hooks to interact natively with Windows.
+              Custun is built on open-source technologies under standard permissive developer licensing. It utilizes rust-safe system hooks to interact natively with Windows.
             </p>
             <div className="flex items-center gap-1.5 pt-2 text-xs text-[#A67165] font-bold">
               Made with <Heart className="h-3.5 w-3.5 fill-current text-rose-500" /> by the DeepMind Antigravity developer agent.

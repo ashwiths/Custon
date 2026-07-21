@@ -1,5 +1,5 @@
 import * as React from "react"
-import { LayoutDashboard, Settings, Info, Box } from "lucide-react"
+import { LayoutDashboard, Settings, Info } from "lucide-react"
 import { cn } from "@/utils/cn"
 
 export type ActivePage = "dashboard" | "settings" | "about"
@@ -39,11 +39,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
             boxShadow: "0 2px 10px rgba(166,113,101,0.4)",
           }}
         >
-          <Box className="h-5 w-5" style={{ color: "#fff" }} />
+          <span style={{ color: "#fff", fontSize: "16px", fontWeight: 900, fontFamily: "system-ui, sans-serif" }}>C</span>
         </div>
         <div>
           <div style={{ fontSize: "15px", fontWeight: 700, color: "#F2D8C2", letterSpacing: "0.06em" }}>
-            CUSTOM
+            CUSTUN
           </div>
           <div style={{ fontSize: "11px", color: "rgba(242,216,194,0.4)", fontWeight: 500 }}>
             Desktop Suite
@@ -111,7 +111,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
               border: "1px solid rgba(166,113,101,0.25)"
             }}
           >
-            <Box className="h-3.5 w-3.5" style={{ color: "#A67165" }} />
+            <span style={{ color: "#A67165", fontSize: "13px", fontWeight: 900, fontFamily: "system-ui, sans-serif" }}>c</span>
           </div>
           <div>
             <div style={{ fontSize: "11px", fontWeight: 600, color: "rgba(242,216,194,0.7)" }}>v0.1.0 • Tauri v2</div>

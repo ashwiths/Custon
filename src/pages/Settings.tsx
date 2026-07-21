@@ -223,7 +223,7 @@ export const Settings: React.FC<SettingsProps> = ({ darkMode, setDarkMode }) => 
         <Card style={{ borderRadius: "20px" }}>
           <CardHeader>
             <CardTitle style={{ fontSize: "18px" }}>Startup Options</CardTitle>
-            <CardDescription>Manage how Custom initializes on boot.</CardDescription>
+            <CardDescription>Manage how Custun initializes on boot.</CardDescription>
           </CardHeader>
           <CardContent style={{ padding: "20px 24px" }}>
             <div className="flex items-center justify-between">
