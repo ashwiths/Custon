@@ -127,15 +127,11 @@ impl WindowManager {
 
         let count = context.snapshots.len();
 
-        // Perform instant, non-blocking window minimization without focus activation thrashing
+        // Perform instant, zero-animation window hiding (0ms lag, no DWM animation stutter)
         for snapshot in &context.snapshots {
             unsafe {
-                ShowWindowAsync(snapshot.hwnd, SW_SHOWMINNOACTIVE as i32);
+                ShowWindowAsync(snapshot.hwnd, SW_HIDE as i32);
             }
-        }
-
-        unsafe {
-            SetForegroundWindow(GetDesktopWindow());
         }
 
         let mut saved = state.saved_windows.lock().unwrap();
@@ -175,7 +171,7 @@ impl WindowManager {
                 } else if snapshot.was_minimized {
                     ShowWindowAsync(snapshot.hwnd, SW_SHOWMINIMIZED as i32);
                 } else {
-                    ShowWindowAsync(snapshot.hwnd, SW_RESTORE as i32);
+                    ShowWindowAsync(snapshot.hwnd, SW_SHOW as i32);
                 }
             }
         }
