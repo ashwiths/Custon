@@ -175,9 +175,103 @@ unsafe extern "system" fn enum_windows_callback(hwnd: HWND, lparam: LPARAM) -> B
     1
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct RunningAppInfo {
+    pub id: String,
+    pub name: String,
+    pub desc: String,
+    pub exe_name: String,
+}
+
 pub struct WindowManager;
 
 impl WindowManager {
+    pub fn get_running_applications() -> Vec<RunningAppInfo> {
+        let mut context = EnumContext {
+            snapshots: Vec::new(),
+        };
+
+        unsafe {
+            EnumWindows(
+                Some(enum_windows_callback),
+                &mut context as *mut EnumContext as LPARAM,
+            );
+        }
+
+        let mut seen_ids = std::collections::HashSet::new();
+        let mut running_apps = Vec::new();
+
+        for snapshot in context.snapshots {
+            let exe_name = get_process_exe_name(snapshot.process_id);
+            if exe_name.is_empty() {
+                continue;
+            }
+
+            // Filter out system shell / IDE internal helper binaries
+            if exe_name.contains("custon")
+                || exe_name.contains("antigravity")
+                || exe_name.contains("explorer.exe")
+                || exe_name.contains("searchhost.exe")
+                || exe_name.contains("startmenuexperiencehost.exe")
+            {
+                continue;
+            }
+
+            let (id, friendly_name, desc) = match exe_name.as_str() {
+                "chrome.exe" => ("chrome".to_string(), "Google Chrome".to_string(), "Web Browser".to_string()),
+                "code.exe" => ("vscode".to_string(), "VS Code".to_string(), "Code Editor".to_string()),
+                "discord.exe" => ("discord".to_string(), "Discord".to_string(), "Voice & Text Chat".to_string()),
+                "spotify.exe" => ("spotify".to_string(), "Spotify".to_string(), "Music Streaming".to_string()),
+                "msedge.exe" => ("edge".to_string(), "Microsoft Edge".to_string(), "Web Browser".to_string()),
+                "firefox.exe" => ("firefox".to_string(), "Mozilla Firefox".to_string(), "Web Browser".to_string()),
+                "brave.exe" => ("brave".to_string(), "Brave Browser".to_string(), "Web Browser".to_string()),
+                "notepad.exe" => ("notepad".to_string(), "Notepad".to_string(), "Text Editor".to_string()),
+                "cmd.exe" | "powershell.exe" | "wt.exe" => {
+                    ("terminal".to_string(), "Terminal / Console".to_string(), "Command Line".to_string())
+                }
+                other => {
+                    let base_name = other.strip_suffix(".exe").unwrap_or(other);
+                    let formatted = base_name
+                        .split(&['-', '_'][..])
+                        .map(|w| {
+                            let mut c = w.chars();
+                            match c.next() {
+                                None => String::new(),
+                                Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join(" ");
+
+                    let app_id = base_name.to_lowercase();
+                    let display_desc = if !snapshot.title.is_empty() {
+                        if snapshot.title.len() > 35 {
+                            format!("{}...", &snapshot.title[..32])
+                        } else {
+                            snapshot.title.clone()
+                        }
+                    } else {
+                        "Running Application".to_string()
+                    };
+
+                    (app_id, formatted, display_desc)
+                }
+            };
+
+            if !seen_ids.contains(&id) {
+                seen_ids.insert(id.clone());
+                running_apps.push(RunningAppInfo {
+                    id,
+                    name: friendly_name,
+                    desc,
+                    exe_name: exe_name.clone(),
+                });
+            }
+        }
+
+        running_apps
+    }
+
     pub fn toggle(state: &WorkspaceState) -> (ToggleState, usize) {
         // Prevent double execution / race conditions if shortcut is spammed
         if !state.acquire_lock() {

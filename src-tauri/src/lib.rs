@@ -107,6 +107,11 @@ fn set_autostart(enable: bool) -> Result<bool, String> {
 }
 
 #[tauri::command]
+fn get_running_apps() -> Result<Vec<window_manager::RunningAppInfo>, String> {
+    Ok(WindowManager::get_running_applications())
+}
+
+#[tauri::command]
 fn get_autostart_status() -> Result<bool, String> {
     Ok(autostart::is_autostart_enabled())
 }
@@ -144,10 +149,12 @@ pub fn run() {
             sync_shortcuts,
             set_workspace_hotkey,
             get_workspace_state,
+            get_running_apps,
             set_autostart,
             get_autostart_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
 

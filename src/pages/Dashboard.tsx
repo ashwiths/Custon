@@ -2,7 +2,6 @@ import * as React from "react"
 import { 
   Keyboard, 
   Monitor, 
-  RotateCcw, 
   Plus, 
   ChevronRight,
   Trash2,
@@ -12,7 +11,9 @@ import {
   Zap,
   Edit3,
   Sliders,
-  AlertTriangle
+  AlertTriangle,
+  EyeOff,
+  XCircle
 } from "lucide-react"
 import { CreateAppShortcut } from "@/pages/CreateAppShortcut"
 import { CreateFullClose } from "@/pages/CreateFullClose"
@@ -91,6 +92,7 @@ export interface ShortcutItem {
   status: string
   lastUsed: string
   isFullClose?: boolean
+  executionMode?: "stealth" | "close"
 }
 
 type ViewMode = "home" | "create-app-shortcut" | "create-full-close"
@@ -99,7 +101,7 @@ type AutostartState = "prompt" | "warning" | "enabled" | "hidden"
 const STORAGE_KEY = "custom_workspace_shortcuts"
 
 const DEFAULT_SHORTCUTS: ShortcutItem[] = [
-  { id: "1", name: "Chrome • VS Code • Discord", apps: ["chrome", "vscode", "discord"], keys: ["Ctrl", "Shift", "Q"], status: "Enabled", lastUsed: "2 mins ago" },
+  { id: "1", name: "Chrome • VS Code • Discord", apps: ["chrome", "vscode", "discord"], keys: ["Ctrl", "Shift", "Q"], status: "Enabled", lastUsed: "2 mins ago", executionMode: "stealth" },
   { id: "2", name: "Close All Open Windows", apps: ["all-apps"], keys: ["Ctrl", "Alt", "X"], status: "Enabled", lastUsed: "5 mins ago", isFullClose: true },
 ]
 
@@ -184,7 +186,7 @@ export const Dashboard: React.FC = () => {
     }
   }
 
-  // Save shortcuts to localStorage & sync hotkey with Rust backend
+  // Save shortcuts to localStorage & sync hotkeys with Rust backend
   React.useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(shortcuts))
@@ -192,46 +194,74 @@ export const Dashboard: React.FC = () => {
       // Ignore
     }
 
-    const fullCloseItem = shortcuts.find(s => s.isFullClose)
-    if (fullCloseItem) {
-      import("@tauri-apps/api/core").then(({ invoke }) => {
-        invoke("set_workspace_hotkey", { keyCombo: fullCloseItem.keys.join(" + ") }).catch(() => {})
-      }).catch(() => {})
-    }
+    import("@tauri-apps/api/core").then(({ invoke }) => {
+      invoke("sync_shortcuts", { shortcuts }).catch(() => {})
+    }).catch(() => {})
   }, [shortcuts])
 
-  // Trigger Native Win32 Workspace Toggle
-  const triggerCloseExecution = async (_label?: string) => {
+  // Trigger Target App Shortcut Execution
+  const triggerShortcutExecution = async (item: ShortcutItem) => {
     try {
       const { invoke } = await import("@tauri-apps/api/core")
-      const result = await invoke<{ state: string; count: number }>("toggle_workspace")
-      if (result.state === "hidden") {
-        setActionToast("✓ All windows hidden")
+      if (item.isFullClose || item.apps.includes("all-apps")) {
+        const result = await invoke<{ state: string; count: number }>("toggle_workspace")
+        if (result.state === "hidden") {
+          setActionToast("✓ All open windows hidden")
+        } else {
+          setActionToast("✓ All windows restored")
+        }
       } else {
-        setActionToast("✓ Workspace restored")
+        const result = await invoke<{ state: string; count: number; mode: string }>("toggle_target_shortcut", {
+          shortcutId: item.id,
+          targetApps: item.apps,
+          mode: item.executionMode || "stealth"
+        })
+        if (item.executionMode === "close") {
+          setActionToast(`✓ Terminated target app windows (${item.name})`)
+        } else if (result.state === "hidden") {
+          setActionToast(`✓ Hidden target app windows (${item.name})`)
+        } else {
+          setActionToast(`✓ Restored target app windows (${item.name})`)
+        }
       }
-      setTimeout(() => setActionToast(null), 2000)
+      setTimeout(() => setActionToast(null), 2500)
     } catch {
       // Fallback for non-tauri dev environment
       setIsClosingAll(true)
       setTimeout(() => {
         setIsClosingAll(false)
-        setActionToast("✓ All windows hidden")
-        setTimeout(() => setActionToast(null), 2000)
+        setActionToast(`✓ Target shortcut triggered (${item.name})`)
+        setTimeout(() => setActionToast(null), 2500)
       }, 300)
     }
   }
 
-  // Native Win32 Global Hotkey Event Listener (Sub-50ms native Win32 event)
+  // Native Win32 Global Hotkey Event Listener
   React.useEffect(() => {
-    let unlisten: (() => void) | undefined
+    let unlistenShortcut: (() => void) | undefined
+    let unlistenWorkspace: (() => void) | undefined
+
     async function listenToNativeEvents() {
       try {
         const { listen } = await import("@tauri-apps/api/event")
-        unlisten = await listen<{ state: string; count: number }>("workspace-toggle-event", (event) => {
+
+        unlistenShortcut = await listen<{ name?: string; state: string; count: number; mode?: string }>("shortcut-trigger-event", (event) => {
+          const { name, state, mode } = event.payload
+          const displayName = name || "Target Shortcut"
+          if (mode === "close") {
+            setActionToast(`✓ ${displayName}: Terminated target apps`)
+          } else if (state === "hidden") {
+            setActionToast(`✓ ${displayName}: Hidden target apps`)
+          } else {
+            setActionToast(`✓ ${displayName}: Restored target apps`)
+          }
+          setTimeout(() => setActionToast(null), 2500)
+        })
+
+        unlistenWorkspace = await listen<{ state: string; count: number }>("workspace-toggle-event", (event) => {
           const { state } = event.payload
           if (state === "hidden") {
-            setActionToast("✓ All windows hidden")
+            setActionToast("✓ Open windows hidden")
           } else {
             setActionToast("✓ Workspace restored")
           }
@@ -242,12 +272,14 @@ export const Dashboard: React.FC = () => {
       }
     }
     listenToNativeEvents()
+
     return () => {
-      if (unlisten) unlisten()
+      if (unlistenShortcut) unlistenShortcut()
+      if (unlistenWorkspace) unlistenWorkspace()
     }
   }, [])
 
-  // In-App Keyboard Shortcut Listener Fallback (only for browser env without native Tauri hotkeys)
+  // In-App Keyboard Shortcut Listener Fallback for non-Tauri browser dev
   React.useEffect(() => {
     if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
       return
@@ -271,7 +303,7 @@ export const Dashboard: React.FC = () => {
         const currentStr = currentKeys.join(" + ")
         if (currentStr === itemKeysStr && !isClosingAll) {
           e.preventDefault()
-          triggerCloseExecution(item.keys.join(" + "))
+          triggerShortcutExecution(item)
         }
       })
     }
@@ -285,7 +317,7 @@ export const Dashboard: React.FC = () => {
   }
 
   // Save App Shortcut handler
-  const handleSaveAppShortcut = (shortcutName: string, selectedApps: string[], keys: string[]) => {
+  const handleSaveAppShortcut = (shortcutName: string, selectedApps: string[], keys: string[], mode?: string) => {
     const defaultAppsList = ["chrome", "vscode", "discord"]
     const generatedName = shortcutName.trim()
       ? shortcutName.trim()
@@ -297,14 +329,15 @@ export const Dashboard: React.FC = () => {
       apps: selectedApps.length > 0 ? selectedApps : defaultAppsList,
       keys,
       status: "Enabled",
-      lastUsed: "Just now"
+      lastUsed: "Just now",
+      executionMode: (mode as "stealth" | "close") || "stealth"
     }
 
     setShortcuts([newShortcut, ...shortcuts])
     setViewMode("home")
   }
 
-  // Save Full Close Shortcut handler (Supports both Edit & Create)
+  // Save Full Close Shortcut handler
   const handleSaveFullCloseShortcut = (keys: string[]) => {
     if (editingShortcutId) {
       setShortcuts(shortcuts.map(s => s.id === editingShortcutId ? {
@@ -321,7 +354,8 @@ export const Dashboard: React.FC = () => {
         keys,
         status: "Enabled",
         lastUsed: "Just now",
-        isFullClose: true
+        isFullClose: true,
+        executionMode: "stealth"
       }
       setShortcuts([newShortcut, ...shortcuts])
     }
@@ -352,8 +386,8 @@ export const Dashboard: React.FC = () => {
       {isClosingAll && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-white p-6 animate-fade-in">
           <div className="w-16 h-16 rounded-full border-4 border-[#A67165]/30 border-t-[#A67165] animate-spin mb-4" />
-          <h3 className="text-xl font-bold text-[#F2D8C2] mb-1">CLOSING ALL APPLICATION WINDOWS</h3>
-          <p className="text-xs text-white/70">Executing shortcut bounds and terminating open windows...</p>
+          <h3 className="text-xl font-bold text-[#F2D8C2] mb-1">EXECUTING TARGET APP SHORTCUT</h3>
+          <p className="text-xs text-white/70">Processing target app background hiding & shortcut bounds...</p>
         </div>
       )}
 
@@ -389,7 +423,7 @@ export const Dashboard: React.FC = () => {
                   <span>Start with Windows (Run in Background)</span>
                 </div>
                 <p className="text-xs font-semibold text-[#6B5B54] dark:text-[#A69281] max-w-[550px]">
-                  Allow Custon to start automatically when your laptop boots up (like Opera GX) so your global hotkeys work instantly in the background.
+                  Allow Custon to start automatically when your laptop boots up so your target app shortcuts work instantly in the background during exams.
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -418,7 +452,7 @@ export const Dashboard: React.FC = () => {
                   <span>⚠️ WARNING: Background Execution Disabled!</span>
                 </div>
                 <p className="text-xs font-semibold text-[#252326] dark:text-[#F2D8C2] max-w-[580px] leading-relaxed">
-                  Because background auto-start was not allowed, your custom shortcuts will <strong>NOT WORK</strong> after restarting Windows until Custon is opened manually. Kindly allow Custon to run in the background!
+                  Because background auto-start was not allowed, your target app shortcuts will <strong>NOT WORK</strong> after restarting Windows until Custon is opened manually.
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -436,12 +470,12 @@ export const Dashboard: React.FC = () => {
               Welcome to Custom
             </h1>
             <h2 className="text-[20px] font-bold text-[#252326] dark:text-[#F2D8C2]">
-              Your workspace, <span className="text-[#A67165] dark:text-[#C98D74]">one shortcut</span> away.
+              Your workspace, <span className="text-[#A67165] dark:text-[#C98D74]">one target shortcut</span> away.
             </h2>
             <div className="flex flex-wrap items-center gap-2.5 mt-1">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>System Ready & Global Shortcuts Active</span>
+                <span>Target App Engine Active & Global Hotkeys Registered</span>
               </div>
               <button 
                 onClick={handleToggleTestAutostartBanner}
@@ -466,11 +500,11 @@ export const Dashboard: React.FC = () => {
               </div>
 
               <h3 className="text-[20px] font-bold text-[#252326] dark:text-[#F2D8C2] mb-1.5 leading-tight">
-                Create Application Shortcut
+                Create Target App Shortcut
               </h3>
 
               <p className="text-[13px] font-medium text-[#6B5B54] dark:text-[#A69281] mb-6 max-w-[280px] leading-relaxed">
-                Hide or restore selected applications using custom keyboard shortcuts.
+                Hide or close specific background target apps (Chrome, VS Code, AI) with custom hotkeys during exams.
               </p>
 
               <button 
@@ -478,7 +512,7 @@ export const Dashboard: React.FC = () => {
                 className="w-full flex items-center justify-center gap-2 text-[16px] font-semibold text-white bg-gradient-to-r from-[#A67165] to-[#734E46] hover:from-[#734E46] hover:to-[#A67165] transition-all duration-200 shadow-lg border-none cursor-pointer py-3.5 rounded-2xl"
               >
                 <Plus className="h-5 w-5" />
-                <span>Create Shortcut</span>
+                <span>Create Target App Shortcut</span>
               </button>
             </div>
 
@@ -498,7 +532,7 @@ export const Dashboard: React.FC = () => {
               </h3>
 
               <p className="text-[13px] font-medium text-[#6B5B54] dark:text-[#A69281] mb-6 max-w-[280px] leading-relaxed">
-                Close all open windows and applications instantly with a single key.
+                Close all open windows and applications instantly with a single master key combination.
               </p>
 
               <button 
@@ -520,10 +554,10 @@ export const Dashboard: React.FC = () => {
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-2.5">
                       <h3 className="text-[18px] font-bold text-[#252326] dark:text-[#F2D8C2]">
-                        Recent Shortcuts
+                        Active Target Shortcuts
                       </h3>
                       <span className="px-2.5 py-0.5 rounded-full bg-[rgba(166,113,101,0.12)] text-[#A67165] text-[11px] font-bold">
-                        {shortcuts.length} Configured
+                        {shortcuts.length} Active
                       </span>
                     </div>
                   </div>
@@ -542,8 +576,19 @@ export const Dashboard: React.FC = () => {
                             )}
                           </div>
                           <div className="space-y-1 text-left">
-                            <div className="text-sm font-bold text-[#252326] dark:text-[#F2D8C2]">
-                              {item.name}
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-[#252326] dark:text-[#F2D8C2]">
+                                {item.name}
+                              </span>
+                              {item.executionMode === "close" ? (
+                                <span className="px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-500 text-[10px] font-bold flex items-center gap-1">
+                                  <XCircle className="w-3 h-3" /> Force Close
+                                </span>
+                              ) : !item.isFullClose && (
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-500 text-[10px] font-bold flex items-center gap-1">
+                                  <EyeOff className="w-3 h-3" /> Stealth Toggle
+                                </span>
+                              )}
                             </div>
                             <div className="flex items-center gap-1 text-[11px] font-mono text-[#6B5B54] dark:text-[#A69281]">
                               {item.keys.map((key, index) => (
@@ -558,11 +603,12 @@ export const Dashboard: React.FC = () => {
 
                         <div className="flex items-center gap-2">
                           <button 
-                            onClick={() => triggerCloseExecution(item.keys.join(" + "))}
-                            className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-[#A67165] hover:bg-[#734E46] transition-all border-none cursor-pointer flex items-center gap-1"
+                            onClick={() => triggerShortcutExecution(item)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-[#A67165] hover:bg-[#734E46] transition-all border-none cursor-pointer flex items-center gap-1 shadow-sm"
+                            title="Trigger shortcut execution now"
                           >
                             <Zap className="h-3.5 w-3.5" />
-                            <span>Apply All</span>
+                            <span>Trigger</span>
                           </button>
                           <button 
                             onClick={() => {
@@ -599,6 +645,22 @@ export const Dashboard: React.FC = () => {
 
                   <div className="space-y-2.5">
                     <button 
+                      onClick={() => setViewMode("create-app-shortcut")}
+                      className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white/15 hover:bg-white/30 dark:bg-white/5 dark:hover:bg-white/10 border border-white/10 transition-all duration-200 text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-[rgba(166,113,101,0.12)] flex items-center justify-center text-[#A67165]">
+                          <Keyboard className="h-4.5 w-4.5" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <span className="text-xs font-bold text-[#252326] dark:text-[#F2D8C2]">Add Target Application Shortcut</span>
+                          <p className="text-[10px] font-medium text-[#6B5B54] dark:text-[#A69281]">Target specific apps (Chrome, AI tools, etc.)</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-3.5 w-3.5 text-[#9B8179]" />
+                    </button>
+
+                    <button 
                       onClick={() => {
                         const fullCloseItem = shortcuts.find(s => s.isFullClose)
                         setEditingShortcutId(fullCloseItem?.id || null)
@@ -611,40 +673,31 @@ export const Dashboard: React.FC = () => {
                           <Sliders className="h-4.5 w-4.5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-xs font-bold text-[#252326] dark:text-[#F2D8C2]">Customize Close All Keys</span>
-                          <p className="text-[10px] font-medium text-[#6B5B54] dark:text-[#A69281]">Record or edit shortcut key triggers</p>
+                          <span className="text-xs font-bold text-[#252326] dark:text-[#F2D8C2]">Customize Master Close Keys</span>
+                          <p className="text-[10px] font-medium text-[#6B5B54] dark:text-[#A69281]">Record or edit master window close trigger</p>
                         </div>
                       </div>
                       <ChevronRight className="h-3.5 w-3.5 text-[#9B8179]" />
                     </button>
 
                     <button 
-                      onClick={() => triggerCloseExecution()}
+                      onClick={() => {
+                        const firstTarget = shortcuts.find(s => !s.isFullClose)
+                        if (firstTarget) {
+                          triggerShortcutExecution(firstTarget)
+                        } else {
+                          setActionToast("Please create a target app shortcut first!")
+                        }
+                      }}
                       className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white/15 hover:bg-white/30 dark:bg-white/5 dark:hover:bg-white/10 border border-white/10 transition-all duration-200 text-left cursor-pointer"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-[rgba(166,113,101,0.12)] flex items-center justify-center text-[#A67165]">
-                          <Power className="h-4.5 w-4.5" />
+                          <EyeOff className="h-4.5 w-4.5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-xs font-bold text-[#252326] dark:text-[#F2D8C2]">Close All Windows Now</span>
-                          <p className="text-[10px] font-medium text-[#6B5B54] dark:text-[#A69281]">Instantly terminate all active open windows</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="h-3.5 w-3.5 text-[#9B8179]" />
-                    </button>
-
-                    <button 
-                      onClick={() => setActionToast("Workspace restored successfully.")}
-                      className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white/15 hover:bg-white/30 dark:bg-white/5 dark:hover:bg-white/10 border border-white/10 transition-all duration-200 text-left cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-[rgba(166,113,101,0.12)] flex items-center justify-center text-[#A67165]">
-                          <RotateCcw className="h-4.5 w-4.5" />
-                        </div>
-                        <div className="space-y-0.5">
-                          <span className="text-xs font-bold text-[#252326] dark:text-[#F2D8C2]">Restore Workspace</span>
-                          <p className="text-[10px] font-medium text-[#6B5B54] dark:text-[#A69281]">Restore all hidden workspace applications</p>
+                          <span className="text-xs font-bold text-[#252326] dark:text-[#F2D8C2]">Toggle Target Apps Stealth Mode</span>
+                          <p className="text-[10px] font-medium text-[#6B5B54] dark:text-[#A69281]">Instantly hide target background apps</p>
                         </div>
                       </div>
                       <ChevronRight className="h-3.5 w-3.5 text-[#9B8179]" />
@@ -655,8 +708,6 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-
-
           {/* ROW 3: FEATURE HIGHLIGHTS */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[850px] mx-auto">
             <div className="glass-card flex flex-col justify-between p-6 rounded-[24px] border-[rgba(255,255,255,0.22)]">
@@ -665,9 +716,9 @@ export const Dashboard: React.FC = () => {
                   <Monitor className="h-6 w-6" />
                 </div>
                 <div className="space-y-1.5 text-left">
-                  <h4 className="text-base font-bold text-[#252326] dark:text-[#F2D8C2]">Application Shortcuts</h4>
+                  <h4 className="text-base font-bold text-[#252326] dark:text-[#F2D8C2]">Targeted App Control</h4>
                   <p className="text-[13px] font-medium text-[#6B5B54] dark:text-[#A69281] leading-relaxed">
-                    Select target apps to hide or restore together.
+                    Select target apps to hide or restore together in background.
                   </p>
                 </div>
               </div>
@@ -693,9 +744,9 @@ export const Dashboard: React.FC = () => {
                   <Keyboard className="h-6 w-6" />
                 </div>
                 <div className="space-y-1.5 text-left">
-                  <h4 className="text-base font-bold text-[#252326] dark:text-[#F2D8C2]">Global Shortcuts</h4>
+                  <h4 className="text-base font-bold text-[#252326] dark:text-[#F2D8C2]">Global Win32 Hotkeys</h4>
                   <p className="text-[13px] font-medium text-[#6B5B54] dark:text-[#A69281] leading-relaxed">
-                    Custom key combinations that trigger anywhere.
+                    Custom key combinations that trigger anywhere in Windows.
                   </p>
                 </div>
               </div>
@@ -706,3 +757,4 @@ export const Dashboard: React.FC = () => {
     </div>
   )
 }
+

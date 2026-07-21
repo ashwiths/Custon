@@ -109,7 +109,7 @@ impl HotkeyManager {
             let mut registered_map: HashMap<i32, ShortcutConfig> = HashMap::new();
 
             let register_configs = |configs: &Vec<ShortcutConfig>, map: &mut HashMap<i32, ShortcutConfig>| {
-                for (id, cfg) in map.drain() {
+                for (id, _cfg) in map.drain() {
                     unsafe {
                         UnregisterHotKey(0, id);
                     }
