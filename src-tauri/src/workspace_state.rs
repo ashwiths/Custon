@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use windows_sys::Win32::Foundation::{HWND, RECT};
@@ -27,6 +28,8 @@ pub struct WindowSnapshot {
 pub struct WorkspaceState {
     pub toggle_state: Mutex<ToggleState>,
     pub saved_windows: Mutex<Vec<WindowSnapshot>>,
+    pub shortcut_states: Mutex<HashMap<String, ToggleState>>,
+    pub shortcut_windows: Mutex<HashMap<String, Vec<WindowSnapshot>>>,
     pub is_processing: AtomicBool,
 }
 
@@ -35,6 +38,8 @@ impl WorkspaceState {
         Self {
             toggle_state: Mutex::new(ToggleState::Visible),
             saved_windows: Mutex::new(Vec::new()),
+            shortcut_states: Mutex::new(HashMap::new()),
+            shortcut_windows: Mutex::new(HashMap::new()),
             is_processing: AtomicBool::new(false),
         }
     }
@@ -51,5 +56,22 @@ impl WorkspaceState {
         if let Ok(mut windows) = self.saved_windows.lock() {
             windows.clear();
         }
+        if let Ok(mut map) = self.shortcut_windows.lock() {
+            map.clear();
+        }
+        if let Ok(mut states) = self.shortcut_states.lock() {
+            states.clear();
+        }
+    }
+
+    pub fn get_shortcut_state(&self, shortcut_id: &str) -> ToggleState {
+        let states = self.shortcut_states.lock().unwrap();
+        states.get(shortcut_id).copied().unwrap_or(ToggleState::Visible)
+    }
+
+    pub fn set_shortcut_state(&self, shortcut_id: &str, state: ToggleState) {
+        let mut states = self.shortcut_states.lock().unwrap();
+        states.insert(shortcut_id.to_string(), state);
     }
 }
+

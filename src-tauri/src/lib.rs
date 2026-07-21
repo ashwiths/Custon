@@ -6,7 +6,7 @@ pub mod workspace_state;
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
 
-use hotkey_manager::HotkeyManager;
+use hotkey_manager::{HotkeyManager, ShortcutConfig};
 use window_manager::WindowManager;
 use workspace_state::{ToggleState, WorkspaceState};
 
@@ -30,6 +30,50 @@ fn toggle_workspace(
     let _ = app_handle.emit("workspace-toggle-event", payload.clone());
 
     Ok(payload)
+}
+
+#[tauri::command]
+fn toggle_target_shortcut(
+    state: State<'_, Arc<WorkspaceState>>,
+    app_handle: AppHandle,
+    shortcut_id: String,
+    target_apps: Vec<String>,
+    mode: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let mode_str = mode.unwrap_or_else(|| "stealth".to_string());
+    let (new_state, count) = WindowManager::toggle_target_apps(
+        &state,
+        &shortcut_id,
+        &target_apps,
+        &mode_str,
+    );
+
+    let state_str = match new_state {
+        ToggleState::Visible => "visible",
+        ToggleState::Hidden => "hidden",
+    };
+
+    let payload = serde_json::json!({
+        "id": shortcut_id,
+        "state": state_str,
+        "count": count,
+        "apps": target_apps,
+        "mode": mode_str
+    });
+
+    let _ = app_handle.emit("shortcut-trigger-event", payload.clone());
+    let _ = app_handle.emit("workspace-toggle-event", payload.clone());
+
+    Ok(payload)
+}
+
+#[tauri::command]
+fn sync_shortcuts(
+    hotkey_mgr: State<'_, Arc<HotkeyManager>>,
+    shortcuts: Vec<ShortcutConfig>,
+) -> Result<bool, String> {
+    hotkey_mgr.sync_shortcuts(shortcuts);
+    Ok(true)
 }
 
 #[tauri::command]
@@ -83,12 +127,21 @@ pub fn run() {
             hotkey_for_setup.start_listener(
                 app.handle().clone(),
                 state_for_setup,
-                "Ctrl + Alt + X",
+                vec![ShortcutConfig {
+                    id: "2".to_string(),
+                    name: "Close All Open Windows".to_string(),
+                    apps: vec!["all-apps".to_string()],
+                    keys: vec!["Ctrl".to_string(), "Alt".to_string(), "X".to_string()],
+                    is_full_close: Some(true),
+                    execution_mode: Some("stealth".to_string()),
+                }],
             );
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             toggle_workspace,
+            toggle_target_shortcut,
+            sync_shortcuts,
             set_workspace_hotkey,
             get_workspace_state,
             set_autostart,
@@ -97,3 +150,4 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
