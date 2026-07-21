@@ -1,3 +1,4 @@
+pub mod autostart;
 pub mod hotkey_manager;
 pub mod window_manager;
 pub mod workspace_state;
@@ -56,6 +57,16 @@ fn get_workspace_state(state: State<'_, Arc<WorkspaceState>>) -> Result<serde_js
     }))
 }
 
+#[tauri::command]
+fn set_autostart(enable: bool) -> Result<bool, String> {
+    autostart::set_autostart(enable)
+}
+
+#[tauri::command]
+fn get_autostart_status() -> Result<bool, String> {
+    Ok(autostart::is_autostart_enabled())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let workspace_state = Arc::new(WorkspaceState::new());
@@ -79,7 +90,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             toggle_workspace,
             set_workspace_hotkey,
-            get_workspace_state
+            get_workspace_state,
+            set_autostart,
+            get_autostart_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

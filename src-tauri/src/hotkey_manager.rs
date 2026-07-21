@@ -1,7 +1,8 @@
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, Emitter};
+use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::*;
 use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
@@ -9,10 +10,13 @@ use crate::window_manager::WindowManager;
 use crate::workspace_state::{ToggleState, WorkspaceState};
 
 const HOTKEY_ID: i32 = 0x9001;
+const WM_UPDATE_HOTKEY: u32 = WM_USER + 0x101;
 
 pub struct HotkeyManager {
     current_combo: Mutex<String>,
     is_running: AtomicBool,
+    tx: Mutex<Option<mpsc::Sender<String>>>,
+    listener_thread_id: Mutex<u32>,
 }
 
 impl HotkeyManager {
@@ -20,6 +24,8 @@ impl HotkeyManager {
         Self {
             current_combo: Mutex::new("Ctrl + Alt + X".to_string()),
             is_running: AtomicBool::new(false),
+            tx: Mutex::new(None),
+            listener_thread_id: Mutex::new(0),
         }
     }
 
@@ -83,14 +89,29 @@ impl HotkeyManager {
         *self.current_combo.lock().unwrap() = initial_combo.to_string();
         let combo_str = initial_combo.to_string();
 
-        thread::spawn(move || {
-            let (modifiers, vk_code) = Self::parse_key_combo(&combo_str);
+        let (tx, rx) = mpsc::channel::<String>();
+        *self.tx.lock().unwrap() = Some(tx);
 
-            unsafe {
-                RegisterHotKey(0, HOTKEY_ID, modifiers, vk_code);
+        let (thread_id_tx, thread_id_rx) = mpsc::channel::<u32>();
+
+        thread::spawn(move || {
+            let thread_id = unsafe { GetCurrentThreadId() };
+            let _ = thread_id_tx.send(thread_id);
+
+            let mut current_registered_combo = combo_str.clone();
+            let (mut modifiers, mut vk_code) = Self::parse_key_combo(&current_registered_combo);
+
+            if vk_code != 0 {
+                unsafe {
+                    RegisterHotKey(0, HOTKEY_ID, modifiers, vk_code);
+                }
             }
 
             let mut msg: MSG = unsafe { std::mem::zeroed() };
+            unsafe {
+                PeekMessageW(&mut msg, 0, 0, 0, PM_NOREMOVE);
+            }
+
             loop {
                 let res = unsafe { GetMessageW(&mut msg, 0, 0, 0) };
                 if res <= 0 {
@@ -112,6 +133,21 @@ impl HotkeyManager {
                             "count": count
                         }),
                     );
+                } else if msg.message == WM_UPDATE_HOTKEY {
+                    if let Ok(new_combo) = rx.try_recv() {
+                        unsafe {
+                            UnregisterHotKey(0, HOTKEY_ID);
+                        }
+                        current_registered_combo = new_combo;
+                        let (new_mods, new_vk) = Self::parse_key_combo(&current_registered_combo);
+                        modifiers = new_mods;
+                        vk_code = new_vk;
+                        if vk_code != 0 {
+                            unsafe {
+                                RegisterHotKey(0, HOTKEY_ID, modifiers, vk_code);
+                            }
+                        }
+                    }
                 }
 
                 unsafe {
@@ -124,15 +160,25 @@ impl HotkeyManager {
                 UnregisterHotKey(0, HOTKEY_ID);
             }
         });
+
+        if let Ok(tid) = thread_id_rx.recv() {
+            *self.listener_thread_id.lock().unwrap() = tid;
+        }
     }
 
     pub fn update_hotkey(&self, new_combo: &str) {
         *self.current_combo.lock().unwrap() = new_combo.to_string();
-        let (modifiers, vk_code) = Self::parse_key_combo(new_combo);
 
-        unsafe {
-            UnregisterHotKey(0, HOTKEY_ID);
-            RegisterHotKey(0, HOTKEY_ID, modifiers, vk_code);
+        let tx_guard = self.tx.lock().unwrap();
+        let thread_id = *self.listener_thread_id.lock().unwrap();
+
+        if let Some(ref tx) = *tx_guard {
+            let _ = tx.send(new_combo.to_string());
+            if thread_id != 0 {
+                unsafe {
+                    PostThreadMessageW(thread_id, WM_UPDATE_HOTKEY, 0, 0);
+                }
+            }
         }
     }
 }

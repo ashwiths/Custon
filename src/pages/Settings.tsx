@@ -13,6 +13,30 @@ export const Settings: React.FC<SettingsProps> = ({ darkMode, setDarkMode }) => 
   const [minimizeOnClose, setMinimizeOnClose] = React.useState(true)
   const [startAtLogin, setStartAtLogin] = React.useState(false)
 
+  React.useEffect(() => {
+    async function checkAutostart() {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core")
+        const isEnabled = await invoke<boolean>("get_autostart_status")
+        setStartAtLogin(isEnabled)
+      } catch {
+        // Fallback for non-tauri env
+      }
+    }
+    checkAutostart()
+  }, [])
+
+  const handleToggleAutostart = async (enable: boolean) => {
+    setStartAtLogin(enable)
+    localStorage.setItem("autostart_permission_status", enable ? "allowed" : "denied")
+    try {
+      const { invoke } = await import("@tauri-apps/api/core")
+      await invoke("set_autostart", { enable })
+    } catch {
+      // Fallback
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-up">
       {/* Page Title */}
@@ -75,10 +99,10 @@ export const Settings: React.FC<SettingsProps> = ({ darkMode, setDarkMode }) => 
           <CardContent style={{ padding: "20px 24px" }}>
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-semibold text-[#252326]" style={{ fontSize: "15px" }}>Start with Windows</div>
-                <div className="text-xs text-[#9B8179]" style={{ marginTop: "2px" }}>Automatically launch the app on user login.</div>
+                <div className="font-semibold text-[#252326]" style={{ fontSize: "15px" }}>Start with Windows (Auto-Launch like Opera GX)</div>
+                <div className="text-xs text-[#9B8179]" style={{ marginTop: "2px" }}>Automatically launch Custon in the background when Windows starts.</div>
               </div>
-              <ToggleSwitch checked={startAtLogin} onChange={setStartAtLogin} />
+              <ToggleSwitch checked={startAtLogin} onChange={handleToggleAutostart} />
             </div>
           </CardContent>
         </Card>

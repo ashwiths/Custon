@@ -11,7 +11,8 @@ import {
   Power,
   Zap,
   Edit3,
-  Sliders
+  Sliders,
+  AlertTriangle
 } from "lucide-react"
 import { CreateAppShortcut } from "@/pages/CreateAppShortcut"
 import { CreateFullClose } from "@/pages/CreateFullClose"
@@ -93,18 +94,111 @@ export interface ShortcutItem {
 }
 
 type ViewMode = "home" | "create-app-shortcut" | "create-full-close"
+type AutostartState = "prompt" | "warning" | "enabled" | "hidden"
+
+const STORAGE_KEY = "custom_workspace_shortcuts"
+
+const DEFAULT_SHORTCUTS: ShortcutItem[] = [
+  { id: "1", name: "Chrome • VS Code • Discord", apps: ["chrome", "vscode", "discord"], keys: ["Ctrl", "Shift", "Q"], status: "Enabled", lastUsed: "2 mins ago" },
+  { id: "2", name: "Close All Open Windows", apps: ["all-apps"], keys: ["Ctrl", "Alt", "X"], status: "Enabled", lastUsed: "5 mins ago", isFullClose: true },
+]
 
 export const Dashboard: React.FC = () => {
   const [viewMode, setViewMode] = React.useState<ViewMode>("home")
   const [editingShortcutId, setEditingShortcutId] = React.useState<string | null>(null)
 
-  const [shortcuts, setShortcuts] = React.useState<ShortcutItem[]>([
-    { id: "1", name: "Chrome • VS Code • Discord", apps: ["chrome", "vscode", "discord"], keys: ["Ctrl", "Shift", "Q"], status: "Enabled", lastUsed: "2 mins ago" },
-    { id: "2", name: "Close All Open Windows", apps: ["all-apps"], keys: ["Ctrl", "Alt", "X"], status: "Enabled", lastUsed: "5 mins ago", isFullClose: true },
-  ])
+  const [shortcuts, setShortcuts] = React.useState<ShortcutItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+    } catch {
+      // Fallback
+    }
+    return DEFAULT_SHORTCUTS
+  })
 
   const [actionToast, setActionToast] = React.useState<string | null>(null)
   const [isClosingAll, setIsClosingAll] = React.useState(false)
+  const [autostartState, setAutostartState] = React.useState<AutostartState>("prompt")
+
+  // Check autostart status and user preference
+  React.useEffect(() => {
+    async function checkAutostartPrompt() {
+      const promptStatus = localStorage.getItem("autostart_permission_status")
+      if (promptStatus === "denied") {
+        setAutostartState("warning")
+        return
+      }
+      if (promptStatus === "allowed") {
+        setAutostartState("enabled")
+        return
+      }
+
+      try {
+        const { invoke } = await import("@tauri-apps/api/core")
+        const isEnabled = await invoke<boolean>("get_autostart_status")
+        if (isEnabled) {
+          setAutostartState("enabled")
+        } else {
+          setAutostartState("prompt")
+        }
+      } catch {
+        setAutostartState("prompt")
+      }
+    }
+    checkAutostartPrompt()
+  }, [])
+
+  const handleEnableAutostart = async () => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core")
+      await invoke("set_autostart", { enable: true })
+      setActionToast("✓ Custon will now run in background on boot!")
+    } catch {
+      // Fallback
+    }
+    setAutostartState("enabled")
+    localStorage.setItem("autostart_permission_status", "allowed")
+  }
+
+  const handleDenyAutostart = async () => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core")
+      await invoke("set_autostart", { enable: false })
+    } catch {
+      // Fallback
+    }
+    setAutostartState("warning")
+    localStorage.setItem("autostart_permission_status", "denied")
+  }
+
+  const handleToggleTestAutostartBanner = () => {
+    if (autostartState === "prompt") {
+      handleDenyAutostart()
+    } else {
+      setAutostartState("prompt")
+      localStorage.removeItem("autostart_permission_status")
+    }
+  }
+
+  // Save shortcuts to localStorage & sync hotkey with Rust backend
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(shortcuts))
+    } catch {
+      // Ignore
+    }
+
+    const fullCloseItem = shortcuts.find(s => s.isFullClose)
+    if (fullCloseItem) {
+      import("@tauri-apps/api/core").then(({ invoke }) => {
+        invoke("set_workspace_hotkey", { keyCombo: fullCloseItem.keys.join(" + ") }).catch(() => {})
+      }).catch(() => {})
+    }
+  }, [shortcuts])
 
   // Trigger Native Win32 Workspace Toggle
   const triggerCloseExecution = async (_label?: string) => {
@@ -153,8 +247,12 @@ export const Dashboard: React.FC = () => {
     }
   }, [])
 
-  // In-App Keyboard Shortcut Listener Fallback
+  // In-App Keyboard Shortcut Listener Fallback (only for browser env without native Tauri hotkeys)
   React.useEffect(() => {
+    if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+      return
+    }
+
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       shortcuts.forEach(item => {
         const itemKeysStr = item.keys.join(" + ").toLowerCase()
@@ -229,7 +327,6 @@ export const Dashboard: React.FC = () => {
     }
 
     setViewMode("home")
-    triggerCloseExecution(keys.join(" + "))
   }
 
   return (
@@ -283,7 +380,57 @@ export const Dashboard: React.FC = () => {
       {/* HOME PAGE VIEW WITH 2 SEPARATE HERO CARDS */}
       {viewMode === "home" && (
         <>
-          {/* Welcome Section */}
+          {/* Prompt Banner */}
+          {autostartState === "prompt" && (
+            <div className="glass-card p-5 rounded-2xl border-[#A67165]/40 bg-gradient-to-r from-[#A67165]/15 to-[#734E46]/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-up">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm font-bold text-[#252326] dark:text-[#F2D8C2]">
+                  <Zap className="h-4 w-4 text-[#A67165]" />
+                  <span>Start with Windows (Run in Background)</span>
+                </div>
+                <p className="text-xs font-semibold text-[#6B5B54] dark:text-[#A69281] max-w-[550px]">
+                  Allow Custon to start automatically when your laptop boots up (like Opera GX) so your global hotkeys work instantly in the background.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button 
+                  onClick={handleEnableAutostart}
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#A67165] hover:bg-[#734E46] rounded-xl transition-all border-none cursor-pointer shadow-md"
+                >
+                  Allow Auto-Start
+                </button>
+                <button 
+                  onClick={handleDenyAutostart}
+                  className="px-3 py-2 text-xs font-semibold text-[#6B5B54] dark:text-[#A69281] hover:text-[#252326] dark:hover:text-[#F2D8C2] bg-transparent border-none cursor-pointer"
+                >
+                  Not Now
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Warning Banner when User Rejects Background Run */}
+          {autostartState === "warning" && (
+            <div className="glass-card p-5 rounded-2xl border-amber-500/50 bg-gradient-to-r from-amber-500/15 to-red-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-up">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm font-bold text-amber-500">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <span>⚠️ WARNING: Background Execution Disabled!</span>
+                </div>
+                <p className="text-xs font-semibold text-[#252326] dark:text-[#F2D8C2] max-w-[580px] leading-relaxed">
+                  Because background auto-start was not allowed, your custom shortcuts will <strong>NOT WORK</strong> after restarting Windows until Custon is opened manually. Kindly allow Custon to run in the background!
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button 
+                  onClick={handleEnableAutostart}
+                  className="px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-amber-600 to-[#A67165] hover:from-[#A67165] hover:to-amber-600 rounded-xl transition-all border-none cursor-pointer shadow-lg animate-pulse"
+                >
+                  Allow Background Execution Now
+                </button>
+              </div>
+            </div>
+          )}
           <div className="flex flex-col justify-center gap-3 text-left py-2 relative">
             <h1 className="text-[44px] font-black tracking-tight text-[#252326] dark:text-[#F2D8C2] leading-tight">
               Welcome to Custom
@@ -291,11 +438,17 @@ export const Dashboard: React.FC = () => {
             <h2 className="text-[20px] font-bold text-[#252326] dark:text-[#F2D8C2]">
               Your workspace, <span className="text-[#A67165] dark:text-[#C98D74]">one shortcut</span> away.
             </h2>
-            <div className="flex items-center gap-2.5 mt-1">
+            <div className="flex flex-wrap items-center gap-2.5 mt-1">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>System Ready & Global Shortcuts Active</span>
               </div>
+              <button 
+                onClick={handleToggleTestAutostartBanner}
+                className="px-3 py-1 rounded-full border border-[#A67165]/30 bg-[#A67165]/10 hover:bg-[#A67165]/20 text-[11px] font-bold text-[#A67165] dark:text-[#C98D74] transition-all border-none cursor-pointer"
+              >
+                {autostartState === "prompt" ? "Simulate Rejection (Test Warning)" : autostartState === "warning" ? "Reset to Permission Prompt" : "Test Background Permission Banner"}
+              </button>
             </div>
           </div>
 

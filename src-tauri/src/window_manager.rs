@@ -1,13 +1,11 @@
 use std::mem;
 use windows_sys::Win32::Foundation::{BOOL, HWND, LPARAM, RECT};
 use windows_sys::Win32::Graphics::Gdi::{MonitorFromWindow, MONITOR_DEFAULTTONEAREST};
-use windows_sys::Win32::System::Threading::GetCurrentProcessId;
 use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
 use crate::workspace_state::{ToggleState, WindowSnapshot, WorkspaceState};
 
 struct EnumContext {
-    self_pid: u32,
     snapshots: Vec<WindowSnapshot>,
 }
 
@@ -19,14 +17,7 @@ unsafe extern "system" fn enum_windows_callback(hwnd: HWND, lparam: LPARAM) -> B
         return 1;
     }
 
-    // 2. Ignore window owned by our own application
-    let mut pid: u32 = 0;
-    GetWindowThreadProcessId(hwnd, &mut pid);
-    if pid == context.self_pid {
-        return 1;
-    }
-
-    // 3. Ignore zero-size or offscreen utility windows
+    // 2. Ignore zero-size or offscreen utility windows
     let mut rect: RECT = mem::zeroed();
     if GetWindowRect(hwnd, &mut rect) == 0 {
         return 1;
@@ -37,7 +28,7 @@ unsafe extern "system" fn enum_windows_callback(hwnd: HWND, lparam: LPARAM) -> B
         return 1;
     }
 
-    // 4. Class Name Filtering (Desktop, Taskbar, System UI)
+    // 3. Class Name Filtering (Desktop, Taskbar, System UI)
     let mut class_buf = [0u16; 256];
     let class_len = GetClassNameW(hwnd, class_buf.as_mut_ptr(), 256);
     let class_name = String::from_utf16_lossy(&class_buf[..class_len as usize]);
@@ -53,18 +44,21 @@ unsafe extern "system" fn enum_windows_callback(hwnd: HWND, lparam: LPARAM) -> B
         return 1;
     }
 
-    // 5. Extended style filtering (Tool windows vs App windows)
+    // 4. Extended style filtering (Tool windows vs App windows)
     let ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE) as u32;
     if (ex_style & WS_EX_TOOLWINDOW != 0) && (ex_style & WS_EX_APPWINDOW == 0) {
         return 1;
     }
 
-    // 6. Window Title
+    // 5. Window Title
     let mut title_buf = [0u16; 512];
     let title_len = GetWindowTextW(hwnd, title_buf.as_mut_ptr(), 512);
     let title = String::from_utf16_lossy(&title_buf[..title_len as usize]);
 
-    // 7. Capture Window Placement and Monitor
+    // 6. Capture Window Placement and Monitor
+    let mut pid: u32 = 0;
+    GetWindowThreadProcessId(hwnd, &mut pid);
+
     let mut placement: WINDOWPLACEMENT = mem::zeroed();
     placement.length = mem::size_of::<WINDOWPLACEMENT>() as u32;
     if GetWindowPlacement(hwnd, &mut placement) == 0 {
@@ -120,10 +114,7 @@ impl WindowManager {
     }
 
     fn hide_all(state: &WorkspaceState) -> usize {
-        let self_pid = unsafe { GetCurrentProcessId() };
-
         let mut context = EnumContext {
-            self_pid,
             snapshots: Vec::new(),
         };
 
@@ -136,11 +127,15 @@ impl WindowManager {
 
         let count = context.snapshots.len();
 
-        // Perform instant, non-blocking window minimization / hiding
+        // Perform instant, non-blocking window minimization without focus activation thrashing
         for snapshot in &context.snapshots {
             unsafe {
-                ShowWindowAsync(snapshot.hwnd, SW_MINIMIZE as i32);
+                ShowWindowAsync(snapshot.hwnd, SW_SHOWMINNOACTIVE as i32);
             }
+        }
+
+        unsafe {
+            SetForegroundWindow(GetDesktopWindow());
         }
 
         let mut saved = state.saved_windows.lock().unwrap();
