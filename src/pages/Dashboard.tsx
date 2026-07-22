@@ -353,17 +353,28 @@ export const Dashboard: React.FC = () => {
       ? shortcutName.trim()
       : selectedApps.map(id => id).join(" • ")
 
-    const newShortcut: ShortcutItem = {
-      id: Date.now().toString(),
-      name: generatedName,
-      apps: selectedApps.length > 0 ? selectedApps : defaultAppsList,
-      keys,
-      status: "Enabled",
-      lastUsed: "Just now",
-      executionMode: (mode as "stealth" | "close") || "stealth"
+    if (editingShortcutId) {
+      setShortcuts(shortcuts.map(s => s.id === editingShortcutId ? {
+        ...s,
+        name: generatedName,
+        apps: selectedApps.length > 0 ? selectedApps : defaultAppsList,
+        keys,
+        executionMode: (mode as "stealth" | "close") || "stealth",
+        lastUsed: "Just now"
+      } : s))
+      setEditingShortcutId(null)
+    } else {
+      const newShortcut: ShortcutItem = {
+        id: Date.now().toString(),
+        name: generatedName,
+        apps: selectedApps.length > 0 ? selectedApps : defaultAppsList,
+        keys,
+        status: "Enabled",
+        lastUsed: "Just now",
+        executionMode: (mode as "stealth" | "close") || "stealth"
+      }
+      setShortcuts([newShortcut, ...shortcuts])
     }
-
-    setShortcuts([newShortcut, ...shortcuts])
     setViewMode("home")
   }
 
@@ -424,8 +435,12 @@ export const Dashboard: React.FC = () => {
       {/* SEPARATE PAGE 1 MODULE: CREATE APPLICATION SHORTCUT */}
       {viewMode === "create-app-shortcut" && (
         <CreateAppShortcut 
-          onBack={() => setViewMode("home")}
+          onBack={() => {
+            setEditingShortcutId(null)
+            setViewMode("home")
+          }}
           onSave={handleSaveAppShortcut}
+          initialShortcut={shortcuts.find(s => s.id === editingShortcutId)}
         />
       )}
 
@@ -593,9 +608,9 @@ export const Dashboard: React.FC = () => {
 
                   <div className="space-y-3.5">
                     {shortcuts.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-4 bg-white/20 dark:bg-white/5 hover:bg-white/35 dark:hover:bg-white/8 rounded-2xl border border-white/12 dark:border-white/5 transition-all duration-220">
-                        <div className="flex items-center gap-3.5">
-                          <div className="flex items-center gap-1.5 bg-white/50 dark:bg-white/10 p-2 rounded-xl border border-white/20">
+                      <div key={item.id} className="flex items-center justify-between p-4 bg-white/20 dark:bg-white/5 hover:bg-white/35 dark:hover:bg-white/8 rounded-2xl border border-white/12 dark:border-white/5 transition-all duration-220 gap-4 min-w-0">
+                        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 bg-white/50 dark:bg-white/10 p-2 rounded-xl border border-white/20 shrink-0">
                             {item.isFullClose ? <Power className="h-5 w-5 text-[#A67165]" /> : (
                               item.apps.slice(0, 3).map((appId, index) => (
                                 <React.Fragment key={index}>
@@ -604,33 +619,36 @@ export const Dashboard: React.FC = () => {
                               ))
                             )}
                           </div>
-                          <div className="space-y-1 text-left">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-[#252326] dark:text-[#F2D8C2]">
-                                {item.name}
-                              </span>
+                          <div className="space-y-1 text-left min-w-0 flex-1">
+                            <span 
+                              className="text-xs sm:text-sm font-bold text-[#252326] dark:text-[#F2D8C2] truncate max-w-[140px] sm:max-w-[200px] md:max-w-[260px] block"
+                              title={item.name}
+                            >
+                              {item.name}
+                            </span>
+                            <div className="flex flex-wrap items-center gap-2 mt-1 min-w-0">
+                              <div className="flex items-center gap-1 text-[11px] font-mono text-[#6B5B54] dark:text-[#A69281] shrink-0">
+                                {item.keys.map((key, index) => (
+                                  <React.Fragment key={index}>
+                                    <kbd className="px-1.5 py-0.5 rounded-md bg-white/60 dark:bg-white/10 border border-white/30 text-[9px] font-bold shadow-sm">{key}</kbd>
+                                    {index < item.keys.length - 1 && <span className="opacity-60">+</span>}
+                                  </React.Fragment>
+                                ))}
+                              </div>
                               {item.executionMode === "close" ? (
-                                <span className="px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-500 text-[10px] font-bold flex items-center gap-1">
-                                  <XCircle className="w-3 h-3" /> Force Close
+                                <span className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-500 text-[8px] font-bold flex items-center gap-0.5 shrink-0 border border-rose-500/10">
+                                  <XCircle className="w-2.5 h-2.5" /> Force Close
                                 </span>
                               ) : !item.isFullClose && (
-                                <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-500 text-[10px] font-bold flex items-center gap-1">
-                                  <EyeOff className="w-3 h-3" /> Stealth Toggle
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500 text-[8px] font-bold flex items-center gap-0.5 shrink-0 border border-emerald-500/10">
+                                  <EyeOff className="w-2.5 h-2.5" /> Stealth Toggle
                                 </span>
                               )}
-                            </div>
-                            <div className="flex items-center gap-1 text-[11px] font-mono text-[#6B5B54] dark:text-[#A69281]">
-                              {item.keys.map((key, index) => (
-                                <React.Fragment key={index}>
-                                  <kbd className="px-2 py-0.5 rounded-md bg-white/60 dark:bg-white/10 border border-white/30 text-[10px] font-bold shadow-sm">{key}</kbd>
-                                  {index < item.keys.length - 1 && <span className="opacity-60">+</span>}
-                                </React.Fragment>
-                              ))}
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                           <button 
                             onClick={() => triggerShortcutExecution(item)}
                             className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-[#A67165] hover:bg-[#734E46] transition-all border-none cursor-pointer flex items-center gap-1 shadow-sm"
@@ -642,7 +660,11 @@ export const Dashboard: React.FC = () => {
                           <button 
                             onClick={() => {
                               setEditingShortcutId(item.id)
-                              setViewMode("create-full-close")
+                              if (item.isFullClose) {
+                                setViewMode("create-full-close")
+                              } else {
+                                setViewMode("create-app-shortcut")
+                              }
                             }}
                             className="w-8 h-8 rounded-lg hover:bg-white/20 dark:hover:bg-white/10 flex items-center justify-center border border-white/15 text-[#6B5B54] dark:text-[#A69281] hover:text-[#A67165] cursor-pointer transition-colors" 
                             title="Customize Key Combination"

@@ -83,18 +83,28 @@ interface RunningAppItem {
   desc: string
   exe_name?: string
   icon?: React.ReactNode
+  isRunning?: boolean
 }
 
 interface CreateAppShortcutProps {
   onBack: () => void
   onSave: (shortcutName: string, selectedApps: string[], keys: string[], mode?: string) => void
+  initialShortcut?: {
+    name: string
+    apps: string[]
+    keys: string[]
+    executionMode?: "stealth" | "close"
+  }
 }
 
-export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, onSave }) => {
-  const [shortcutName, setShortcutName] = React.useState("")
-  const [selectedApps, setSelectedApps] = React.useState<string[]>([])
-  const [keyCombo, setKeyCombo] = React.useState("")
+export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, onSave, initialShortcut }) => {
+  const [shortcutName, setShortcutName] = React.useState(initialShortcut?.name || "")
+  const [selectedApps, setSelectedApps] = React.useState<string[]>(initialShortcut?.apps || [])
+  const [keyCombo, setKeyCombo] = React.useState(initialShortcut?.keys ? initialShortcut.keys.join(" + ") : "")
   const [executionMode, setExecutionMode] = React.useState<"stealth" | "close">(() => {
+    if (initialShortcut?.executionMode) {
+      return initialShortcut.executionMode
+    }
     try {
       const mode = localStorage.getItem("settings_default_execution_mode")
       return (mode === "close" ? "close" : "stealth")
@@ -114,19 +124,59 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
     try {
       const { invoke } = await import("@tauri-apps/api/core")
       const apps = await invoke<{ id: string; name: string; desc: string; exe_name: string }[]>("get_running_apps")
+      
+      const standardApps = [
+        { id: "chrome", name: "Google Chrome", desc: "Web Browser", exe_name: "chrome.exe", icon: <ChromeIcon /> },
+        { id: "vscode", name: "VS Code", desc: "Code Editor", exe_name: "code.exe", icon: <VSCodeIcon /> },
+        { id: "discord", name: "Discord", desc: "Voice & Text Chat", exe_name: "discord.exe", icon: <DiscordIcon /> },
+        { id: "spotify", name: "Spotify", desc: "Music Streaming", exe_name: "spotify.exe", icon: <SpotifyIcon /> },
+        { id: "edge", name: "Microsoft Edge", desc: "Web Browser", exe_name: "msedge.exe", icon: <EdgeIcon /> },
+        { id: "notepad", name: "Notepad", desc: "Text Editor", exe_name: "notepad.exe", icon: (
+          <div className="w-5 h-5 rounded bg-amber-600/20 text-amber-500 flex items-center justify-center text-[10px] font-black uppercase">
+            NP
+          </div>
+        ) }
+      ]
+
+      const runningIds = new Set<string>()
       if (Array.isArray(apps)) {
-        const mapped = apps.map(app => ({
-          ...app,
-          icon: getAppIcon(app.id)
-        }))
-        setRunningApps(mapped)
+        apps.forEach(app => runningIds.add(app.id))
       }
+
+      // Map standard apps with active running state
+      const mappedStandard = standardApps.map(app => ({
+        ...app,
+        isRunning: runningIds.has(app.id)
+      }))
+
+      // Add other dynamically running apps that are not in the standard list
+      const extraApps: RunningAppItem[] = []
+      if (Array.isArray(apps)) {
+        apps.forEach(app => {
+          if (!standardApps.some(s => s.id === app.id)) {
+            extraApps.push({
+              ...app,
+              icon: getAppIcon(app.id),
+              isRunning: true
+            })
+          }
+        })
+      }
+
+      setRunningApps([...mappedStandard, ...extraApps])
     } catch {
       // Fallback for non-tauri dev environment
       setRunningApps([
-        { id: "chrome", name: "Google Chrome", desc: "Web Browser", icon: <ChromeIcon /> },
-        { id: "vscode", name: "VS Code", desc: "Code Editor", icon: <VSCodeIcon /> },
-        { id: "discord", name: "Discord", desc: "Voice & Text Chat", icon: <DiscordIcon /> },
+        { id: "chrome", name: "Google Chrome", desc: "Web Browser", icon: <ChromeIcon />, isRunning: true },
+        { id: "vscode", name: "VS Code", desc: "Code Editor", icon: <VSCodeIcon />, isRunning: false },
+        { id: "discord", name: "Discord", desc: "Voice & Text Chat", icon: <DiscordIcon />, isRunning: false },
+        { id: "spotify", name: "Spotify", desc: "Music Streaming", icon: <SpotifyIcon />, isRunning: false },
+        { id: "edge", name: "Microsoft Edge", desc: "Web Browser", icon: <EdgeIcon />, isRunning: true },
+        { id: "notepad", name: "Notepad", desc: "Text Editor", icon: (
+          <div className="w-5 h-5 rounded bg-amber-600/20 text-amber-500 flex items-center justify-center text-[10px] font-black uppercase">
+            NP
+          </div>
+        ), isRunning: true }
       ])
     } finally {
       setIsLoadingApps(false)
@@ -307,6 +357,7 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
             {filteredApps.map((app) => {
               const isSelected = selectedApps.includes(app.id)
+              const isRunning = app.isRunning
               return (
                 <div
                   key={app.id}
@@ -323,7 +374,12 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
                   </div>
                   <div>
                     <div className="text-xs font-bold text-[#252326] dark:text-[#F2D8C2] truncate">{app.name}</div>
-                    <div className="text-[10px] text-[#9B8179] dark:text-[#8C7B6E] font-medium truncate">{app.desc}</div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-emerald-500" : "bg-neutral-500"}`} />
+                      <span className="text-[9px] text-[#9B8179] dark:text-[#8C7B6E] font-bold uppercase tracking-wider">
+                        {isRunning ? "Active" : "Offline"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )
