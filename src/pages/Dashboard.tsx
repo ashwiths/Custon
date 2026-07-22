@@ -17,6 +17,8 @@ import {
 } from "lucide-react"
 import { CreateAppShortcut } from "@/pages/CreateAppShortcut"
 import { CreateFullClose } from "@/pages/CreateFullClose"
+import { InteractiveDial } from "@/components/InteractiveDial"
+import { animate, splitText, stagger } from "animejs"
 
 // Handcrafted SVG Icons for Application Logos
 const ChromeIcon: React.FC = () => (
@@ -108,6 +110,34 @@ const DEFAULT_SHORTCUTS: ShortcutItem[] = [
 export const Dashboard: React.FC = () => {
   const [viewMode, setViewMode] = React.useState<ViewMode>("home")
   const [editingShortcutId, setEditingShortcutId] = React.useState<string | null>(null)
+  
+  const titleRef = React.useRef<HTMLHeadingElement>(null)
+
+  React.useEffect(() => {
+    if (viewMode === "home" && titleRef.current) {
+      // Restore plain text content before running splitText
+      titleRef.current.innerHTML = "Module imports"
+      
+      const split = splitText(titleRef.current)
+      
+      animate(split.words, {
+        opacity: [0, 1],
+        translateY: [12, 0],
+        scale: [0.95, 1],
+        delay: stagger(60),
+        duration: 500,
+        ease: "outQuad"
+      })
+      
+      animate(".subtitle-text", {
+        opacity: [0, 1],
+        translateY: [8, 0],
+        delay: 350,
+        duration: 500,
+        ease: "outQuad"
+      })
+    }
+  }, [viewMode])
 
   const [shortcuts, setShortcuts] = React.useState<ShortcutItem[]>(() => {
     try {
@@ -466,11 +496,22 @@ export const Dashboard: React.FC = () => {
             </div>
           )}
           <div className="flex flex-col justify-center gap-3 text-left py-2 relative">
-            <h1 className="text-[44px] font-black tracking-tight text-[#252326] dark:text-[#F2D8C2] leading-tight">
-              Welcome to Custun Shortcuts
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:block">
+              <InteractiveDial />
+            </div>
+            <h1 
+              ref={titleRef}
+              className="text-[44px] font-black tracking-tight text-[#252326] dark:text-[#F2D8C2] leading-tight pr-24"
+            >
+              Module imports
             </h1>
-            <h2 className="text-[20px] font-bold text-[#252326] dark:text-[#F2D8C2]">
-              Your workspace, <span className="text-[#A67165] dark:text-[#C98D74]">one target shortcut</span> away.
+            <h2 className="text-[15px] font-semibold text-[#6B5B54] dark:text-[#A69281] opacity-0 subtitle-text max-w-[800px] leading-relaxed space-y-3 mt-2">
+              <p>
+                Anime.js has a very flexible modules-first API and excellent tree shaking support, making it one of the most lightweight JavaScript animation libraries.
+              </p>
+              <p>
+                Anime.js modules can be imported straight from the main 'animejs' module, or more granularly from specific subpaths, either by using a bundler like Vite or esbuild, or natively without a build step using importmap.
+              </p>
             </h2>
           </div>
 

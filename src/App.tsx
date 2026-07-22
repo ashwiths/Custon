@@ -69,7 +69,7 @@ function App() {
       case "dashboard":
         return <Dashboard />
       case "settings":
-        return <Settings darkMode={darkMode} setDarkMode={setDarkMode} />
+        return <Settings darkMode={darkMode} setDarkMode={setDarkMode} onBack={() => setCurrentPage("dashboard")} />
       default:
         return <Dashboard />
     }
