@@ -73,7 +73,7 @@ export const Settings: React.FC<SettingsProps> = ({ darkMode, setDarkMode, onBac
   }
 
   const activeTabObj = tabs.find(t => t.id === activeTab) || tabs[0]
-  const isComingSoon = ["security", "workspace", "diagnostics", "statistics", "sync", "experimental"].includes(activeTab)
+  const isComingSoon = ["security", "workspace", "sync", "experimental"].includes(activeTab)
 
   return (
     <div className="w-full h-full flex flex-col justify-between overflow-hidden select-none text-[#F2D8C2] font-sans antialiased animate-fade-up relative">

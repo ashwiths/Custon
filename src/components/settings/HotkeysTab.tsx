@@ -146,7 +146,7 @@ export const HotkeysTab: React.FC = () => {
   )
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full justify-between gap-4 text-left">
       {/* Toast Alert Mock */}
       {testResult && (
         <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-lg animate-fade-in flex items-center gap-2">
@@ -194,7 +194,7 @@ export const HotkeysTab: React.FC = () => {
       </div>
 
       {/* Shortcuts List */}
-      <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+      <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 min-h-0 scrollbar-thin">
         {filteredShortcuts.map(item => {
           const isRecording = recordingId === item.id
           const issue = checkConflicts(item.id, item.keyCombo)
