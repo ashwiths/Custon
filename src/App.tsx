@@ -2,7 +2,6 @@ import { useState, useEffect } from "react"
 import { MainLayout } from "@/layouts/MainLayout"
 import { Dashboard } from "@/pages/Dashboard"
 import { Settings } from "@/pages/Settings"
-import { About } from "@/pages/About"
 import { type ActivePage } from "@/components/Sidebar"
 
 function App() {
@@ -71,8 +70,6 @@ function App() {
         return <Dashboard />
       case "settings":
         return <Settings darkMode={darkMode} setDarkMode={setDarkMode} />
-      case "about":
-        return <About />
       default:
         return <Dashboard />
     }

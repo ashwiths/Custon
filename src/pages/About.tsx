@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/Card"
 import { Box, Code2, Globe, Heart } from "lucide-react"
+import logoIcon from "@/assets/logo_icon.png"
 
 export const About: React.FC = () => {
   return (
@@ -21,16 +22,12 @@ export const About: React.FC = () => {
               padding: "36px 24px",
             }}
           >
-            <div 
-              className="h-16 w-16 rounded-2xl flex items-center justify-center text-white shadow-lg mb-4"
-              style={{
-                background: "linear-gradient(135deg, #A67165 0%, #734E46 100%)",
-                boxShadow: "0 4px 16px rgba(166,113,101,0.3)",
-              }}
-            >
-              <span className="text-2xl font-black select-none animate-pulse" style={{ fontFamily: "system-ui, sans-serif" }}>C</span>
-            </div>
-            <h3 className="section-title" style={{ fontSize: "24px", color: "#252326" }}>Custun Desktop</h3>
+            <img 
+              src={logoIcon} 
+              alt="Custun Shortcuts Logo" 
+              className="h-16 w-16 mb-4 object-contain animate-pulse"
+            />
+            <h3 className="section-title" style={{ fontSize: "24px", color: "#252326" }}>Custun Shortcuts</h3>
             <p className="text-sm text-[#6B5B54] mt-1.5">A production-ready Tauri + React application boilerplate.</p>
             <div 
               className="mt-4 px-3.5 py-1 rounded-full text-xs font-mono font-bold"

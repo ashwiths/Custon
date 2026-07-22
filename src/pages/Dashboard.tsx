@@ -177,14 +177,14 @@ export const Dashboard: React.FC = () => {
     localStorage.setItem("autostart_permission_status", "denied")
   }
 
-  const handleToggleTestAutostartBanner = () => {
-    if (autostartState === "prompt") {
-      handleDenyAutostart()
-    } else {
-      setAutostartState("prompt")
-      localStorage.removeItem("autostart_permission_status")
-    }
-  }
+  // const handleToggleTestAutostartBanner = () => {
+  //   if (autostartState === "prompt") {
+  //     handleDenyAutostart()
+  //   } else {
+  //     setAutostartState("prompt")
+  //     localStorage.removeItem("autostart_permission_status")
+  //   }
+  // }
 
   // Save shortcuts to localStorage & sync hotkeys with Rust backend
   React.useEffect(() => {
@@ -467,7 +467,7 @@ export const Dashboard: React.FC = () => {
           )}
           <div className="flex flex-col justify-center gap-3 text-left py-2 relative">
             <h1 className="text-[44px] font-black tracking-tight text-[#252326] dark:text-[#F2D8C2] leading-tight">
-              Welcome to Custun
+              Welcome to Custun Shortcuts
             </h1>
             <h2 className="text-[20px] font-bold text-[#252326] dark:text-[#F2D8C2]">
               Your workspace, <span className="text-[#A67165] dark:text-[#C98D74]">one target shortcut</span> away.

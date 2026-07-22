@@ -69,8 +69,8 @@ export const ShortcutInput: React.FC<ShortcutInputProps> = ({
         onFocus={() => setIsRecording(true)}
         onBlur={() => setIsRecording(false)}
         className={cn(
-          "flex h-12 w-full rounded-[12px] border border-[rgba(166,113,101,0.2)] bg-[rgba(255,255,255,0.55)] py-3 pl-11 pr-10 text-sm placeholder:text-[#9B8179] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A67165] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer text-center font-mono font-semibold transition-all duration-200 backdrop-blur-md text-[#252326]",
-          isRecording && "border-[#A67165] ring-2 ring-[#A67165]/20 bg-[rgba(166,113,101,0.05)] shadow-[0_0_15px_rgba(166,113,101,0.05)]"
+          "flex h-12 w-full rounded-[12px] border border-[rgba(166,113,101,0.2)] dark:border-[#A67165]/40 bg-[rgba(255,255,255,0.55)] dark:bg-[#1E1B1A] py-3 pl-11 pr-10 text-sm placeholder:text-[#9B8179] dark:placeholder:text-[#A69281]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A67165] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer text-center font-mono font-semibold transition-all duration-200 backdrop-blur-md text-[#252326] dark:text-[#F2D8C2]",
+          isRecording && "border-[#A67165] ring-2 ring-[#A67165]/20 bg-[rgba(166,113,101,0.05)] dark:bg-[#A67165]/10 shadow-[0_0_15px_rgba(166,113,101,0.05)]"
         )}
       />
       {value && (

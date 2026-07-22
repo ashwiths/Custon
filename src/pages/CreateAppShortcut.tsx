@@ -252,7 +252,7 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
             value={shortcutName}
             onChange={(e) => setShortcutName(e.target.value)}
             placeholder="e.g. Exam AI Clean, Study Stealth, Custom App Close"
-            className="w-full text-base px-5 py-3.5 rounded-xl border border-white/20 bg-white/20 dark:bg-white/5 backdrop-blur-md outline-none text-[#252326] dark:text-[#F2D8C2] placeholder:text-[#9B8179]/50 focus:border-[#A67165] font-semibold"
+            className="w-full text-base px-5 py-3.5 rounded-xl border border-[rgba(166,113,101,0.2)] dark:border-[#A67165]/40 bg-white/55 dark:bg-[#1E1B1A] backdrop-blur-md outline-none text-[#252326] dark:text-[#F2D8C2] placeholder:text-[#9B8179]/50 focus:border-[#A67165] font-semibold"
           />
         </div>
       </div>
@@ -286,7 +286,7 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filter apps..."
-                className="w-full text-xs px-4 py-2.5 pl-10 rounded-xl border border-white/20 bg-white/20 dark:bg-white/5 outline-none text-[#252326] dark:text-[#F2D8C2]"
+                className="w-full text-xs px-4 py-2.5 pl-10 rounded-xl border border-[rgba(166,113,101,0.2)] dark:border-[#A67165]/40 bg-white/55 dark:bg-[#1E1B1A] outline-none text-[#252326] dark:text-[#F2D8C2]"
               />
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9B8179]" />
             </div>
@@ -337,7 +337,7 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
             value={customAppName}
             onChange={(e) => setCustomAppName(e.target.value)}
             placeholder="App not listed? Type custom app or process name (e.g. ChatGPT, Claude)..."
-            className="flex-1 text-xs px-4 py-2.5 rounded-xl border border-white/15 bg-white/20 dark:bg-white/5 outline-none text-[#252326] dark:text-[#F2D8C2]"
+            className="flex-1 text-xs px-4 py-2.5 rounded-xl border border-[rgba(166,113,101,0.2)] dark:border-[#A67165]/40 bg-white/55 dark:bg-[#1E1B1A] outline-none text-[#252326] dark:text-[#F2D8C2]"
           />
           <button
             type="submit"
@@ -409,7 +409,7 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
               onBlur={() => setIsRecording(false)}
               readOnly
               placeholder={isRecording ? "Press your target shortcut keys..." : "Type key combination (e.g. Ctrl + Shift + S)"}
-              className="w-full text-base px-5 py-3.5 pl-12 rounded-xl border border-white/20 bg-white/20 dark:bg-white/5 outline-none text-[#252326] dark:text-[#F2D8C2] font-mono font-semibold"
+              className="w-full text-base px-5 py-3.5 pl-12 rounded-xl border border-[rgba(166,113,101,0.2)] dark:border-[#A67165]/40 bg-white/55 dark:bg-[#1E1B1A] outline-none text-[#252326] dark:text-[#F2D8C2] font-mono font-semibold"
             />
             <Keyboard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#9B8179]" />
           </div>

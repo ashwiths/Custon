@@ -109,7 +109,7 @@ export const CreateFullClose: React.FC<CreateFullCloseProps> = ({ onBack, onSave
               onBlur={() => setIsRecording(false)}
               readOnly
               placeholder={isRecording ? "Press your custom shortcut keys..." : "Type key combination (e.g. Ctrl + Alt + X)"}
-              className="w-full text-base px-5 py-4 pl-12 rounded-xl border border-white/20 bg-white/20 dark:bg-white/5 outline-none text-[#252326] dark:text-[#F2D8C2] font-mono font-bold text-lg shadow-inner focus:ring-2 focus:ring-[#A67165]/50 transition-all"
+              className="w-full text-base px-5 py-4 pl-12 rounded-xl border border-[rgba(166,113,101,0.2)] dark:border-[#A67165]/40 bg-white/55 dark:bg-[#1E1B1A] outline-none text-[#252326] dark:text-[#F2D8C2] font-mono font-bold text-lg shadow-inner focus:ring-2 focus:ring-[#A67165]/50 transition-all"
             />
             <Keyboard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#A67165]" />
           </div>

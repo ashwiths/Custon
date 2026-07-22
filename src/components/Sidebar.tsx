@@ -1,8 +1,10 @@
 import * as React from "react"
-import { LayoutDashboard, Settings, Info } from "lucide-react"
+import { LayoutDashboard, Settings } from "lucide-react"
 import { cn } from "@/utils/cn"
 
-export type ActivePage = "dashboard" | "settings" | "about"
+import logoIcon from "@/assets/logo_icon.png"
+
+export type ActivePage = "dashboard" | "settings"
 
 interface SidebarProps {
   currentPage: ActivePage
@@ -13,7 +15,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
   const menuItems = [
     { id: "dashboard" as ActivePage, label: "Dashboard", icon: LayoutDashboard },
     { id: "settings" as ActivePage, label: "Settings", icon: Settings },
-    { id: "about" as ActivePage, label: "About", icon: Info },
   ]
 
   return (
@@ -30,23 +31,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
           borderBottom: "1px solid rgba(255,255,255,0.06)",
         }}
       >
-        <div
-          className="flex items-center justify-center rounded-xl"
+        <img
+          src={logoIcon}
+          alt="CUSTUN Shortcuts Logo"
           style={{
             width: "36px",
             height: "36px",
-            background: "linear-gradient(135deg, #A67165 0%, #734E46 100%)",
-            boxShadow: "0 2px 10px rgba(166,113,101,0.4)",
+            objectFit: "contain",
           }}
-        >
-          <span style={{ color: "#fff", fontSize: "16px", fontWeight: 900, fontFamily: "system-ui, sans-serif" }}>C</span>
-        </div>
+        />
         <div>
           <div style={{ fontSize: "15px", fontWeight: 700, color: "#F2D8C2", letterSpacing: "0.06em" }}>
             CUSTUN
           </div>
           <div style={{ fontSize: "11px", color: "rgba(242,216,194,0.4)", fontWeight: 500 }}>
-            Desktop Suite
+            Shortcuts
           </div>
         </div>
       </div>
