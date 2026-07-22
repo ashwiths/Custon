@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Cloud, CloudLightning, RefreshCw, LogIn, LogOut, CheckCircle, Database } from "lucide-react"
+import { Cloud, CloudLightning, RefreshCw, LogIn, LogOut } from "lucide-react"
 
 export const SyncTab: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = React.useState(() => {
@@ -195,6 +195,20 @@ export const SyncTab: React.FC = () => {
             <div>
               <span className="text-[9px] text-[#9B8179] font-bold uppercase">Last Synchronization:</span>
               <div className="text-xs font-bold text-white mt-0.5">{isLoggedIn ? lastSynced : "NEVER"}</div>
+            </div>
+
+             {/* Conflict Resolution Selector */}
+            <div className="space-y-1">
+              <span className="text-[9px] text-[#9B8179] font-bold uppercase">Conflict Resolution Mode:</span>
+              <select
+                value={conflictMode}
+                onChange={e => setConflictMode(e.target.value)}
+                className="w-full bg-black/45 border border-white/10 rounded-lg py-1.5 px-2.5 text-xs text-[#F2D8C2] font-semibold outline-none"
+              >
+                <option value="cloud">Prefer Cloud State</option>
+                <option value="local">Prefer Local State</option>
+                <option value="ask">Prompt User Dialog</option>
+              </select>
             </div>
 
             {/* Storage usage */}

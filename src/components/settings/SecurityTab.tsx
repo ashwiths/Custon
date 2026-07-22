@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Shield, Key, Eye, EyeOff, Lock, CheckCircle } from "lucide-react"
+import { Eye, EyeOff, Lock, CheckCircle } from "lucide-react"
 
 export const SecurityTab: React.FC = () => {
   const [pinEnabled, setPinEnabled] = React.useState(() => {

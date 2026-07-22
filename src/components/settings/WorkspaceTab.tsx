@@ -179,7 +179,7 @@ export const WorkspaceTab: React.FC = () => {
             </div>
 
             {/* Remember Virtual Desktop */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
               <div className="text-left">
                 <span className="text-xs font-bold text-[#F2D8C2] uppercase">Remember Virtual Desktops</span>
                 <p className="text-[9px] text-[#9B8179] font-semibold mt-0.5">Allocates restored apps back to their original virtual workspace screens.</p>
@@ -191,6 +191,38 @@ export const WorkspaceTab: React.FC = () => {
                 }`}
               >
                 <div className={`w-3.5 h-3.5 rounded-full bg-white transition-all ${rememberVirtualDesktop ? "translate-x-4" : "translate-x-0"}`} />
+              </div>
+            </div>
+
+            {/* Restore Application Order */}
+            <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+              <div className="text-left">
+                <span className="text-xs font-bold text-[#F2D8C2] uppercase">Restore Application Order</span>
+                <p className="text-[9px] text-[#9B8179] font-semibold mt-0.5">Launches tasks sequentially based on initial user window hierarchy.</p>
+              </div>
+              <div
+                onClick={() => setRestoreOrder(!restoreOrder)}
+                className={`w-9 h-5 rounded-full relative flex items-center px-0.5 cursor-pointer transition-all duration-200 ${
+                  restoreOrder ? "bg-[#A67165]" : "bg-white/10"
+                }`}
+              >
+                <div className={`w-3.5 h-3.5 rounded-full bg-white transition-all ${restoreOrder ? "translate-x-4" : "translate-x-0"}`} />
+              </div>
+            </div>
+
+            {/* Restore After Restart */}
+            <div className="flex items-center justify-between">
+              <div className="text-left">
+                <span className="text-xs font-bold text-[#F2D8C2] uppercase">Restore After System Restart</span>
+                <p className="text-[9px] text-[#9B8179] font-semibold mt-0.5">Restores target window layout presets even after computer restarts.</p>
+              </div>
+              <div
+                onClick={() => setRestoreAfterRestart(!restoreAfterRestart)}
+                className={`w-9 h-5 rounded-full relative flex items-center px-0.5 cursor-pointer transition-all duration-200 ${
+                  restoreAfterRestart ? "bg-[#A67165]" : "bg-white/10"
+                }`}
+              >
+                <div className={`w-3.5 h-3.5 rounded-full bg-white transition-all ${restoreAfterRestart ? "translate-x-4" : "translate-x-0"}`} />
               </div>
             </div>
           </div>

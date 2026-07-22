@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ShieldCheck, Terminal, FolderOpen, Download, AlertTriangle, Activity } from "lucide-react"
+import { Terminal, FolderOpen, Download, Activity } from "lucide-react"
 
 export const DiagnosticsTab: React.FC = () => {
   // Simulated stats

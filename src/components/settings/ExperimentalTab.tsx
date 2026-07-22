@@ -1,5 +1,5 @@
 import * as React from "react"
-import { FlaskConical, AlertTriangle, Bug, Code } from "lucide-react"
+import { FlaskConical, AlertTriangle, Bug } from "lucide-react"
 
 export const ExperimentalTab: React.FC = () => {
   const [aiWorkspace, setAiWorkspace] = React.useState(() => {
