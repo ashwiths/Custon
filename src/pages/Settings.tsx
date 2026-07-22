@@ -6,7 +6,7 @@ import {
   Play,
   Layers,
   Activity,
-  Archive,
+  RefreshCw,
   BarChart,
   Cloud,
   FlaskConical,
@@ -20,7 +20,7 @@ import { SecurityTab } from "@/components/settings/SecurityTab"
 import { StartupTab } from "@/components/settings/StartupTab"
 import { WorkspaceTab } from "@/components/settings/WorkspaceTab"
 import { DiagnosticsTab } from "@/components/settings/DiagnosticsTab"
-import { BackupTab } from "@/components/settings/BackupTab"
+import { SystemTab } from "@/components/settings/SystemTab"
 import { StatisticsTab } from "@/components/settings/StatisticsTab"
 import { SyncTab } from "@/components/settings/SyncTab"
 import { ExperimentalTab } from "@/components/settings/ExperimentalTab"
@@ -42,7 +42,7 @@ export const Settings: React.FC<SettingsProps> = ({ darkMode, setDarkMode, onBac
     { id: "startup", label: "Startup", icon: Play, component: <StartupTab /> },
     { id: "workspace", label: "Workspace", icon: Layers, component: <WorkspaceTab /> },
     { id: "diagnostics", label: "Diagnostics", icon: Activity, component: <DiagnosticsTab /> },
-    { id: "backup", label: "Backup & Restore", icon: Archive, component: <BackupTab /> },
+    { id: "system", label: "System", icon: RefreshCw, component: <SystemTab setDarkMode={setDarkMode} /> },
     { id: "statistics", label: "Statistics", icon: BarChart, component: <StatisticsTab /> },
     { id: "sync", label: "Cloud Sync", icon: Cloud, component: <SyncTab /> },
     { id: "experimental", label: "Experimental", icon: FlaskConical, component: <ExperimentalTab /> }
@@ -73,9 +73,10 @@ export const Settings: React.FC<SettingsProps> = ({ darkMode, setDarkMode, onBac
   }
 
   const activeTabObj = tabs.find(t => t.id === activeTab) || tabs[0]
+  const isComingSoon = ["security", "workspace", "diagnostics", "statistics", "sync", "experimental"].includes(activeTab)
 
   return (
-    <div className="flex flex-col select-none text-[#F2D8C2] font-sans antialiased max-w-[900px] mx-auto animate-fade-up relative">
+    <div className="w-full h-full flex flex-col justify-between overflow-hidden select-none text-[#F2D8C2] font-sans antialiased animate-fade-up relative">
       {/* Toast notification */}
       {toastMessage && (
         <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-[#A67165] text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-lg animate-fade-in flex items-center gap-2 border border-white/10">
@@ -85,26 +86,26 @@ export const Settings: React.FC<SettingsProps> = ({ darkMode, setDarkMode, onBac
       )}
 
       {/* Main Container Split: Left Tab Menu (4 cols) & Right active page (8 cols) */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch min-h-[460px]">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1 min-h-0 overflow-hidden mb-4">
         {/* Left Sidebar Menu (4 cols) */}
-        <div className="md:col-span-4 bg-black/25 dark:bg-black/15 p-3 rounded-2xl border border-white/5 space-y-1.5 flex flex-col justify-start">
-          <span className="text-[9px] font-black uppercase tracking-widest text-[#9B8179] px-3 pb-1 border-b border-white/5 mb-2 block">
+        <div className="md:col-span-4 bg-black/25 dark:bg-black/15 p-4 rounded-2xl border border-white/5 flex flex-col h-full overflow-hidden">
+          <span className="text-[9px] font-black uppercase tracking-widest text-[#9B8179] px-3 pb-2 border-b border-white/5 mb-3 block">
             System Preferences
           </span>
-          <div className="space-y-1 overflow-y-auto max-h-[400px] pr-1">
+          <div className="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-thin">
             {tabs.map(tab => {
               const isActive = activeTab === tab.id
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl font-bold uppercase tracking-wider text-[10px] transition-all border-none cursor-pointer text-left ${
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider text-[11px] transition-all border-none cursor-pointer text-left ${
                     isActive
                       ? "bg-[#A67165] text-white shadow-[0_0_10px_rgba(166,113,101,0.35)]"
                       : "bg-transparent text-[#9B8179] hover:text-[#F2D8C2] hover:bg-white/5"
                   }`}
                 >
-                  <tab.icon className="w-3.5 h-3.5 shrink-0" />
+                  <tab.icon className="w-4 h-4 shrink-0" />
                   <span className="truncate">{tab.label}</span>
                 </button>
               )
@@ -113,13 +114,22 @@ export const Settings: React.FC<SettingsProps> = ({ darkMode, setDarkMode, onBac
         </div>
 
         {/* Right Tab Content Pane (8 cols) */}
-        <div className="md:col-span-8 bg-black/20 dark:bg-black/10 p-5 rounded-2xl border border-white/5 flex flex-col justify-between overflow-y-auto max-h-[450px]">
-          {activeTabObj.component}
+        <div className="md:col-span-8 bg-black/20 dark:bg-black/10 p-6 rounded-2xl border border-white/5 flex flex-col overflow-y-auto h-full min-h-0 scrollbar-thin relative">
+          <div className={`w-full h-full flex flex-col justify-between ${isComingSoon ? "blur-md select-none pointer-events-none" : ""}`}>
+            {activeTabObj.component}
+          </div>
+          {isComingSoon && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 rounded-2xl">
+              <div className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#A67165] to-[#734E46] border border-[#F2D8C2]/20 text-[#F2D8C2] font-mono text-[10px] font-black tracking-widest uppercase shadow-lg select-none">
+                Coming Soon
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Footer operations row */}
-      <div className="flex flex-wrap items-center justify-between border-t border-white/5 pt-4 mt-4 gap-4 font-mono text-[10px]">
+      <div className="flex flex-wrap items-center justify-between border-t border-white/5 pt-4 mt-1 gap-4 font-mono text-[10px]">
         <button
           onClick={onBack}
           className="px-4 py-2.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 text-[#F2D8C2] font-bold uppercase transition-all cursor-pointer flex items-center gap-1.5"
