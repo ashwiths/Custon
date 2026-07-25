@@ -210,7 +210,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
               fontFamily: "'Geist', 'Inter', sans-serif",
             }}
           >
-            CUSTUN
+            CUSTON
           </h1>
           <p className="text-xs font-semibold tracking-[0.35em] text-[#A69281] uppercase mt-1 opacity-80">
             Shortcuts Engine

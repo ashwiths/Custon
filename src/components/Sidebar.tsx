@@ -33,9 +33,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
           borderBottom: "1px solid rgba(255,255,255,0.06)",
         }}
       >
-        <img src={logoIcon} alt="Custun" style={{ width: "36px", height: "36px" }} />
+        <img src={logoIcon} alt="Custon" style={{ width: "36px", height: "36px" }} />
         <div>
-          <span style={{ fontSize: "17px", fontWeight: 900, color: "#F2D8C2", letterSpacing: "1px" }}>CUSTUN</span>
+          <span style={{ fontSize: "17px", fontWeight: 900, color: "#F2D8C2", letterSpacing: "1px" }}>CUSTON</span>
           <span style={{ display: "block", fontSize: "10px", fontWeight: 600, color: "rgba(242,216,194,0.35)", letterSpacing: "1.5px" }}>Shortcuts</span>
         </div>
       </div>

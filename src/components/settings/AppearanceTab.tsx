@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Sun, Moon, Monitor, Settings, Check } from "lucide-react"
+import { Settings, Check } from "lucide-react"
 import { applyAccentColor } from "@/utils/accentColor"
 
 interface AppearanceTabProps {
@@ -16,11 +16,7 @@ const ACCENT_COLORS = [
   { name: "Slate", value: "#546E7A" }
 ]
 
-export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkMode }) => {
-  const [themeMode, setThemeMode] = React.useState<"dark" | "light" | "system">(() => {
-    return (localStorage.getItem("appearance_theme_mode") as any) || (darkMode ? "dark" : "light")
-  })
-  
+export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode: _darkMode, setDarkMode: _setDarkMode }) => {
   const [accentColor, setAccentColor] = React.useState(() => {
     return localStorage.getItem("appearance_accent_color") || "#A67165"
   })
@@ -45,20 +41,6 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkM
   const [cornerRadius, setCornerRadius] = React.useState(() => {
     return Number(localStorage.getItem("appearance_corner_radius") || "16")
   })
-
-  // Theme change handler
-  const handleThemeChange = (mode: "dark" | "light" | "system") => {
-    setThemeMode(mode)
-    localStorage.setItem("appearance_theme_mode", mode)
-    if (mode === "dark") {
-      setDarkMode(true)
-    } else if (mode === "light") {
-      setDarkMode(false)
-    } else {
-      const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-      setDarkMode(systemDark)
-    }
-  }
 
   // Accent color change handler
   const handleAccentChange = (color: string, isCustom = false) => {
@@ -87,41 +69,10 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkM
         
         {/* Left Column Controls (7 cols) */}
         <div className="xl:col-span-7 space-y-5">
-          
-          {/* Theme Selector */}
-          <div className="p-4 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-md space-y-3">
-            <label className="text-xs font-bold uppercase tracking-wider text-white flex items-center justify-between">
-              <span>Theme Mode</span>
-              <span className="text-[10px] text-[#9B8179] font-mono capitalize">{themeMode}</span>
-            </label>
-            <div className="grid grid-cols-3 gap-2.5">
-              {[
-                { id: "light", label: "Light", icon: Sun },
-                { id: "dark", label: "Dark", icon: Moon },
-                { id: "system", label: "System", icon: Monitor }
-              ].map(item => {
-                const isActive = themeMode === item.id
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleThemeChange(item.id as any)}
-                    className={`flex flex-col items-center justify-center py-3 rounded-xl border transition-all text-xs font-bold gap-1.5 cursor-pointer ${
-                      isActive
-                        ? "border-[var(--accent-color,#A67165)] bg-[var(--accent-color,#A67165)]/15 text-white shadow-md"
-                        : "border-white/10 bg-white/5 text-[#9B8179] hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    <item.icon className="w-4 h-4" style={{ color: isActive ? "var(--accent-color,#A67165)" : undefined }} />
-                    <span>{item.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
 
           {/* Accent Color Swatches */}
-          <div className="p-4 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-md space-y-3">
-            <label className="text-xs font-bold uppercase tracking-wider text-white block">Accent Color</label>
+          <div className="p-4 rounded-2xl border border-black/10 dark:border-white/10 bg-white/40 dark:bg-black/20 backdrop-blur-md space-y-3">
+            <label className="text-xs font-bold uppercase tracking-wider text-[#252326] dark:text-white block">Accent Color</label>
             <div className="flex flex-wrap gap-3 items-center">
               {ACCENT_COLORS.map(c => {
                 const isSelected = accentColor === c.value && !isCustomColor
@@ -132,7 +83,7 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkM
                     className="w-8 h-8 rounded-full transition-all border flex items-center justify-center relative hover:scale-110 cursor-pointer"
                     style={{
                       backgroundColor: c.value,
-                      borderColor: isSelected ? "#FFFFFF" : "rgba(255,255,255,0.2)",
+                      borderColor: isSelected ? "#FFFFFF" : "rgba(0,0,0,0.15)",
                       boxShadow: isSelected ? `0 0 12px ${c.value}` : "none"
                     }}
                     title={c.name}
@@ -143,9 +94,9 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkM
               })}
               
               {/* Custom Color Input */}
-              <div className="flex items-center gap-2 border-l border-white/10 pl-3">
+              <div className="flex items-center gap-2 border-l border-black/10 dark:border-white/10 pl-3">
                 <div
-                  className="w-8 h-8 rounded-full border border-white/30 relative flex items-center justify-center overflow-hidden hover:scale-110 cursor-pointer"
+                  className="w-8 h-8 rounded-full border border-black/20 dark:border-white/30 relative flex items-center justify-center overflow-hidden hover:scale-110 cursor-pointer"
                   style={{
                     backgroundColor: isCustomColor ? accentColor : "#252326",
                     boxShadow: isCustomColor ? `0 0 12px ${accentColor}` : "none"
@@ -161,22 +112,22 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkM
                   {isCustomColor ? (
                     <Check className="w-4 h-4 text-white drop-shadow" />
                   ) : (
-                    <span className="text-[10px] font-bold text-white/70">Custom</span>
+                    <span className="text-[10px] font-bold text-white/90">Custom</span>
                   )}
                 </div>
-                <span className="text-[10px] uppercase font-bold text-[#9B8179]">Custom</span>
+                <span className="text-[10px] uppercase font-bold text-[#594741] dark:text-[#9B8179]">Custom</span>
               </div>
             </div>
           </div>
 
           {/* Sliders Section */}
-          <div className="p-4 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-md space-y-4 font-mono text-[11px]">
+          <div className="p-4 rounded-2xl border border-black/10 dark:border-white/10 bg-white/40 dark:bg-black/20 backdrop-blur-md space-y-4 font-mono text-[11px]">
             
             {/* Opacity */}
             <div className="space-y-1.5">
-              <div className="flex justify-between text-[#9B8179] font-bold">
+              <div className="flex justify-between text-[#594741] dark:text-[#9B8179] font-bold">
                 <span>WALLPAPER OPACITY</span>
-                <span className="text-[#F2D8C2]">{wallpaperOpacity}%</span>
+                <span className="text-[#252326] dark:text-[#F2D8C2] font-black">{wallpaperOpacity}%</span>
               </div>
               <input
                 type="range"
@@ -184,16 +135,16 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkM
                 max="100"
                 value={wallpaperOpacity}
                 onChange={e => setWallpaperOpacity(Number(e.target.value))}
-                className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-color,#A67165)]"
+                className="w-full h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-color,#A67165)]"
                 style={{ accentColor }}
               />
             </div>
 
             {/* Blur */}
             <div className="space-y-1.5">
-              <div className="flex justify-between text-[#9B8179] font-bold">
+              <div className="flex justify-between text-[#594741] dark:text-[#9B8179] font-bold">
                 <span>BACKGROUND BLUR STRENGTH</span>
-                <span className="text-[#F2D8C2]">{blurStrength}px</span>
+                <span className="text-[#252326] dark:text-[#F2D8C2] font-black">{blurStrength}px</span>
               </div>
               <input
                 type="range"
@@ -201,16 +152,16 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkM
                 max="40"
                 value={blurStrength}
                 onChange={e => setBlurStrength(Number(e.target.value))}
-                className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-color,#A67165)]"
+                className="w-full h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-color,#A67165)]"
                 style={{ accentColor }}
               />
             </div>
 
             {/* Glass Transparency */}
             <div className="space-y-1.5">
-              <div className="flex justify-between text-[#9B8179] font-bold">
+              <div className="flex justify-between text-[#594741] dark:text-[#9B8179] font-bold">
                 <span>GLASS TRANSLUCENCY</span>
-                <span className="text-[#F2D8C2]">{glassTransparency}%</span>
+                <span className="text-[#252326] dark:text-[#F2D8C2] font-black">{glassTransparency}%</span>
               </div>
               <input
                 type="range"
@@ -218,16 +169,16 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkM
                 max="90"
                 value={glassTransparency}
                 onChange={e => setGlassTransparency(Number(e.target.value))}
-                className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-color,#A67165)]"
+                className="w-full h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-color,#A67165)]"
                 style={{ accentColor }}
               />
             </div>
 
             {/* Corner Radius */}
             <div className="space-y-1.5">
-              <div className="flex justify-between text-[#9B8179] font-bold">
+              <div className="flex justify-between text-[#594741] dark:text-[#9B8179] font-bold">
                 <span>INTERFACE CORNER RADIUS</span>
-                <span className="text-[#F2D8C2]">{cornerRadius}px</span>
+                <span className="text-[#252326] dark:text-[#F2D8C2] font-black">{cornerRadius}px</span>
               </div>
               <input
                 type="range"
@@ -235,7 +186,7 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkM
                 max="24"
                 value={cornerRadius}
                 onChange={e => setCornerRadius(Number(e.target.value))}
-                className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-color,#A67165)]"
+                className="w-full h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-[var(--accent-color,#A67165)]"
                 style={{ accentColor }}
               />
             </div>
@@ -252,7 +203,7 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkM
           {/* Miniature App Interface Frame Mockup */}
           <div
             className={`w-full overflow-hidden border border-white/15 transition-all duration-300 ${
-              darkMode ? "bg-[#1E1B1A] text-[#F2D8C2]" : "bg-[#F7EFE9] text-[#252326]"
+              _darkMode ? "bg-[#1E1B1A] text-[#F2D8C2]" : "bg-[#F7EFE9] text-[#252326]"
             }`}
             style={{ borderRadius: `${cornerRadius}px` }}
           >
@@ -260,7 +211,7 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkM
             <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-black/20">
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: accentColor }} />
-                <span className="text-[9px] font-black uppercase tracking-wider font-mono">Custun Client</span>
+                <span className="text-[9px] font-black uppercase tracking-wider font-mono">Custon Client</span>
               </div>
               <div className="flex gap-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
@@ -284,7 +235,7 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkM
               {/* Mini sidebar mockup */}
               <div className="w-16 border-r border-white/10 bg-black/40 p-2 space-y-2 flex flex-col items-center z-10 backdrop-blur-sm">
                 <div className="w-full h-4 rounded-lg flex items-center justify-center text-[7px] font-bold" style={{ backgroundColor: `${accentColor}33`, color: accentColor }}>
-                  <Sun className="w-2.5 h-2.5" />
+                  <Settings className="w-2.5 h-2.5" />
                 </div>
                 <div className="w-10 h-1.5 rounded bg-white/20" />
                 <div className="w-10 h-1.5 rounded bg-white/20" />

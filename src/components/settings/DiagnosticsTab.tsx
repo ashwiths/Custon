@@ -55,7 +55,7 @@ export const DiagnosticsTab: React.FC = () => {
     const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(logMessages.join("\n"))
     const dlAnchorElem = document.createElement("a")
     dlAnchorElem.setAttribute("href", dataStr)
-    dlAnchorElem.setAttribute("download", "custun_diagnostics_logs.txt")
+    dlAnchorElem.setAttribute("download", "custon_diagnostics_logs.txt")
     dlAnchorElem.click()
   }
 

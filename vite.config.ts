@@ -35,4 +35,18 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  build: {
+    target: "esnext",
+    minify: "esbuild",
+    cssMinify: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-lucide": ["lucide-react"],
+          "vendor-anime": ["animejs"],
+          "vendor-emailjs": ["@emailjs/browser"]
+        }
+      }
+    }
+  }
 }));

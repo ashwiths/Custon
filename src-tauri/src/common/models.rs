@@ -71,12 +71,12 @@ impl WorkspaceState {
     }
 
     pub fn get_shortcut_state(&self, shortcut_id: &str) -> ToggleState {
-        let states = self.shortcut_states.lock().unwrap();
+        let states = self.shortcut_states.lock().unwrap_or_else(|p| p.into_inner());
         states.get(shortcut_id).copied().unwrap_or(ToggleState::Visible)
     }
 
     pub fn set_shortcut_state(&self, shortcut_id: &str, state: ToggleState) {
-        let mut states = self.shortcut_states.lock().unwrap();
+        let mut states = self.shortcut_states.lock().unwrap_or_else(|p| p.into_inner());
         states.insert(shortcut_id.to_string(), state);
     }
 }

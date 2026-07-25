@@ -1,13 +1,13 @@
 import * as React from "react"
-import { Sun, Moon, Calendar, Clock, ShieldCheck } from "lucide-react"
+import { Calendar, Clock, ShieldCheck } from "lucide-react"
 
 interface TopNavbarProps {
   title: string
-  darkMode: boolean
-  setDarkMode: (dark: boolean) => void
+  darkMode?: boolean
+  setDarkMode?: (dark: boolean) => void
 }
 
-export const TopNavbar: React.FC<TopNavbarProps> = ({ title, darkMode, setDarkMode }) => {
+export const TopNavbar: React.FC<TopNavbarProps> = ({ title }) => {
   const [time, setTime] = React.useState(new Date())
 
   React.useEffect(() => {
@@ -56,19 +56,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ title, darkMode, setDarkMo
           <Clock className="w-3.5 h-3.5 opacity-85 text-[#A67165]" />
           <span>{timeString}</span>
         </div>
-
-        {/* Theme toggle */}
-        <button
-          onClick={() => setDarkMode(!darkMode)}
-          title="Toggle theme"
-          className="w-9 h-9 rounded-xl bg-white/60 dark:bg-white/10 border border-[rgba(166,113,101,0.15)] flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-[1.05] active:scale-[0.95] hover:bg-white/90 dark:hover:bg-white/20 shadow-[0_1px_4px_rgba(115,78,70,0.08)]"
-        >
-          {darkMode ? (
-            <Sun className="h-4.5 w-4.5 text-[#A67165]" />
-          ) : (
-            <Moon className="h-4.5 w-4.5 text-[#734E46]" />
-          )}
-        </button>
       </div>
     </header>
   )
