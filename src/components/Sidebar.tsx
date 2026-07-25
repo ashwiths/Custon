@@ -1,6 +1,7 @@
 import * as React from "react"
 import { LayoutDashboard, Settings, HelpCircle } from "lucide-react"
 import { cn } from "@/utils/cn"
+import { InteractiveDial } from "@/components/InteractiveDial"
 
 import logoIcon from "@/assets/logo_icon.png"
 
@@ -32,50 +33,51 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
           borderBottom: "1px solid rgba(255,255,255,0.06)",
         }}
       >
-        <img
-          src={logoIcon}
-          alt="CUSTUN Shortcuts Logo"
-          style={{
-            width: "36px",
-            height: "36px",
-            objectFit: "contain",
-          }}
-        />
+        <img src={logoIcon} alt="Custun" style={{ width: "36px", height: "36px" }} />
         <div>
-          <div style={{ fontSize: "15px", fontWeight: 700, color: "#F2D8C2", letterSpacing: "0.06em" }}>
-            CUSTUN
-          </div>
-          <div style={{ fontSize: "11px", color: "rgba(242,216,194,0.4)", fontWeight: 500 }}>
-            Shortcuts
-          </div>
+          <span style={{ fontSize: "17px", fontWeight: 900, color: "#F2D8C2", letterSpacing: "1px" }}>CUSTUN</span>
+          <span style={{ display: "block", fontSize: "10px", fontWeight: 600, color: "rgba(242,216,194,0.35)", letterSpacing: "1.5px" }}>Shortcuts</span>
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1" style={{ padding: "16px 12px" }}>
-        <div style={{ marginBottom: "8px", padding: "0 12px" }}>
-          <span style={{ fontSize: "10px", fontWeight: 600, color: "rgba(242,216,194,0.3)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-            Navigation
-          </span>
+      {/* Nav Menu */}
+      <nav style={{ padding: "20px 12px", flex: 1 }}>
+        <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "1.5px", color: "rgba(242,216,194,0.3)", padding: "0 12px 10px", textTransform: "uppercase" }}>
+          Navigation
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+        <div className="space-y-1.5">
           {menuItems.map((item) => {
-            const Icon = item.icon
             const isActive = currentPage === item.id
             return (
               <button
                 key={item.id}
                 onClick={() => setCurrentPage(item.id)}
-                className={cn("nav-item", isActive && "active")}
+                className={cn(
+                  "nav-item flex items-center gap-3 w-full text-left transition-all duration-200 cursor-pointer",
+                  isActive && "active"
+                )}
+                style={{
+                  height: "46px",
+                  padding: "0 16px",
+                  borderRadius: "14px",
+                  fontSize: "14px",
+                  fontWeight: isActive ? 700 : 500,
+                  color: isActive ? "#FFFFFF" : "rgba(242,216,194,0.55)",
+                  background: isActive
+                    ? "var(--accent-color, #A67165)"
+                    : "transparent",
+                  border: isActive ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
+                  boxShadow: isActive ? "0 4px 16px rgba(166,113,101,0.3)" : "none",
+                }}
               >
-                <Icon className="h-4 w-4 animate-nav-icon" style={{ flexShrink: 0, opacity: isActive ? 1 : 0.65 }} />
-                <span>{item.label}</span>
+                <item.icon style={{ width: "18px", height: "18px", opacity: isActive ? 1 : 0.7 }} />
+                <span className="flex-1">{item.label}</span>
                 {isActive && (
-                  <div
-                    className="ml-auto rounded-full shadow-glow"
-                    style={{ 
-                      width: "6px", 
-                      height: "6px", 
+                  <span
+                    style={{
+                      width: "6px",
+                      height: "6px",
+                      borderRadius: "50%",
                       background: "#ffffff",
                       boxShadow: "0 0 8px #ffffff"
                     }}
@@ -86,6 +88,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
           })}
         </div>
       </nav>
+
+      {/* Docked Track Dial Widget */}
+      <div className="py-2 flex justify-center border-t border-white/5 bg-black/10">
+        <InteractiveDial />
+      </div>
 
       {/* Footer */}
       <div

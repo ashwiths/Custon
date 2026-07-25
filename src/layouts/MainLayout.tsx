@@ -1,7 +1,6 @@
 import * as React from "react"
 import { Sidebar, type ActivePage } from "@/components/Sidebar"
 import { TopNavbar } from "@/components/TopNavbar"
-import { InteractiveDial } from "@/components/InteractiveDial"
 
 interface MainLayoutProps {
   currentPage: ActivePage
@@ -32,11 +31,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             {children}
           </div>
         </main>
-      </div>
-
-      {/* Floating Bottom Corner Track Dial */}
-      <div className="fixed bottom-6 right-8 z-50 pointer-events-auto transition-transform hover:scale-105">
-        <InteractiveDial />
       </div>
     </div>
   )

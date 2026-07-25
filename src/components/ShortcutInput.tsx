@@ -1,6 +1,7 @@
 import * as React from "react"
 import { cn } from "@/utils/cn"
 import { Keyboard } from "lucide-react"
+import { isMac } from "@/utils/platform"
 
 export interface ShortcutInputProps {
   value: string
@@ -23,11 +24,11 @@ export const ShortcutInput: React.FC<ShortcutInputProps> = ({
 
     const keys: string[] = []
 
-    // Check modifiers in standard sequence: Ctrl, Alt, Shift, Win
+    // Check modifiers in standard sequence: Ctrl, Alt, Shift, Win / Cmd
     if (e.ctrlKey) keys.push("Ctrl")
     if (e.altKey) keys.push("Alt")
     if (e.shiftKey) keys.push("Shift")
-    if (e.metaKey) keys.push("Win")
+    if (e.metaKey) keys.push(isMac() ? "Cmd" : "Win")
 
     const key = e.key
     const isModifier = ["Control", "Shift", "Alt", "Meta"].includes(key)
