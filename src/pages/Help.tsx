@@ -8,8 +8,10 @@ import {
   MessageSquare,
   Clock,
   Upload,
-  X
+  X,
+  AlertCircle
 } from "lucide-react"
+import { sendSupportTicketEmail } from "@/services/emailService"
 
 export const HelpPage: React.FC = () => {
   const [email, setEmail] = React.useState("")
@@ -21,6 +23,7 @@ export const HelpPage: React.FC = () => {
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null)
   const [imagePreview, setImagePreview] = React.useState<string | null>(null)
 
+  const [validationError, setValidationError] = React.useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [submitResult, setSubmitResult] = React.useState<{
     success: boolean
@@ -44,66 +47,91 @@ export const HelpPage: React.FC = () => {
     }
   }
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = (error) => reject(error)
+    })
+  }
+
+  const validateForm = (): boolean => {
+    setValidationError(null)
+
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setValidationError("Please enter a valid email address (e.g. name@domain.com).")
+      return false
+    }
+
+    if (!complaintText.trim() || complaintText.trim().length < 10) {
+      setValidationError("Please provide at least 10 characters describing your issue or feedback.")
+      return false
+    }
+
+    return true
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!complaintText.trim()) return
+    if (!validateForm()) return
 
     setIsSubmitting(true)
     setSubmitResult(null)
 
+    const ticketId = `TICKET-${Math.floor(100000 + Math.random() * 900000)}`
+
     try {
-      // Connect with Tauri Rust backend
-      const { invoke } = await import("@tauri-apps/api/core")
-      const result = await invoke<{ success: boolean; ticket_id?: string; message: string }>("send_exam_complaint", {
-        email: email.trim() || "user@custon.app",
-        examName: "General Issue",
+      let imageDataUrl: string | null = null
+      if (selectedImage) {
+        try {
+          imageDataUrl = await fileToBase64(selectedImage)
+        } catch {
+          // Ignore
+        }
+      }
+
+      // 1. Invoke Tauri Rust Backend Command
+      try {
+        const { invoke } = await import("@tauri-apps/api/core")
+        await invoke("send_exam_complaint", {
+          email: email.trim() || "user@custon.app",
+          examName: "General Issue",
+          category,
+          complaintText: complaintText.trim(),
+          priority,
+          includeDiagnostics
+        })
+      } catch {
+        // Fallback for non-tauri
+      }
+
+      // 2. Dispatch Direct Email Notification to Support Inbox via EmailJS SDK / Webhook
+      const emailResult = await sendSupportTicketEmail({
+        ticketId,
+        userEmail: email.trim() || "user@custon.app",
         category,
-        complaintText: complaintText.trim(),
+        description: complaintText.trim(),
         priority,
-        includeDiagnostics
+        includeDiagnostics,
+        imageDataUrl
       })
 
       setSubmitResult({
-        success: result.success,
-        message: result.message || "Your feedback has been sent and received via email notification!",
-        ticketId: result.ticket_id || `TICKET-${Math.floor(100000 + Math.random() * 900000)}`
+        success: true,
+        message: emailResult.message,
+        ticketId
       })
 
-      // Reset form on success
+      // Reset form fields on successful email dispatch
       setComplaintText("")
       handleRemoveImage()
-    } catch {
-      // Fallback for non-tauri or offline browser environments
-      try {
-        const ticket = `TICKET-${Math.floor(100000 + Math.random() * 900000)}`
-        await fetch("https://formspree.io/f/xvovzwkp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ticket,
-            email: email || "user@custon.app",
-            category,
-            complaintText,
-            priority,
-            hasAttachment: !!selectedImage,
-            timestamp: new Date().toISOString()
-          })
-        }).catch(() => {})
-
-        setSubmitResult({
-          success: true,
-          message: "✓ Feedback submitted successfully! An email notification has been sent.",
-          ticketId: ticket
-        })
-        setComplaintText("")
-        handleRemoveImage()
-      } catch {
-        setSubmitResult({
-          success: true,
-          message: "✓ Feedback saved and queued for email delivery.",
-          ticketId: `TICKET-${Math.floor(100000 + Math.random() * 900000)}`
-        })
-      }
+    } catch (err: any) {
+      setSubmitResult({
+        success: false,
+        message: err?.message || "Failed to transmit ticket. Please check internet connection.",
+        ticketId
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -141,6 +169,14 @@ export const HelpPage: React.FC = () => {
               <ShieldAlert className="w-4 h-4" />
               <span>Submit Support Ticket & Feedback</span>
             </div>
+
+            {/* Validation Error Alert */}
+            {validationError && (
+              <div className="p-4 rounded-2xl border mb-6 flex items-center gap-3 animate-fade-up bg-rose-500/15 border-rose-500/30 text-rose-300">
+                <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                <p className="text-xs font-semibold">{validationError}</p>
+              </div>
+            )}
 
             {/* Submission Status Alert */}
             {submitResult && (
