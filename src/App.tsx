@@ -9,28 +9,17 @@ import { SplashScreen } from "@/components/SplashScreen"
 function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState<ActivePage>("dashboard")
-  const [darkMode, setDarkMode] = useState(() => {
-    try {
-      const saved = localStorage.getItem("settings_dark_mode")
-      return saved !== "false"
-    } catch {
-      return true
-    }
-  })
+  const [darkMode, setDarkMode] = useState(true)
 
   useEffect(() => {
     const root = window.document.documentElement
-    if (darkMode) {
-      root.classList.add("dark")
-    } else {
-      root.classList.remove("dark")
-    }
+    root.classList.add("dark")
     try {
-      localStorage.setItem("settings_dark_mode", String(darkMode))
+      localStorage.setItem("settings_dark_mode", "true")
     } catch {
       // Ignore
     }
-  }, [darkMode])
+  }, [])
 
   useEffect(() => {
     let unlisten: (() => void) | undefined
