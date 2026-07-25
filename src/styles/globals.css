@@ -183,23 +183,23 @@
 
 /* ─── Premium Button ─────────────────────────────────────────────────────── */
 .btn-primary {
-  background: #A67165;
+  background: var(--accent-color, #A67165);
   color: #fff;
   border-radius: 16px;
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.01em;
   padding: 10px 24px;
-  box-shadow: 0 4px 14px rgba(166, 113, 101, 0.25), 0 1px 0 rgba(255, 255, 255, 0.15) inset;
+  box-shadow: 0 4px 14px rgba(var(--accent-color-rgb, 166, 113, 101), 0.3), 0 1px 0 rgba(255, 255, 255, 0.15) inset;
   transition: all 220ms cubic-bezier(0.16, 1, 0.3, 1);
   border: none;
   cursor: pointer;
 }
 
 .btn-primary:hover {
-  background: #734E46;
+  background: var(--accent-color-hover, #734E46);
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 6px 20px rgba(115, 78, 70, 0.35), 0 1px 0 rgba(255, 255, 255, 0.15) inset;
+  box-shadow: 0 6px 20px rgba(var(--accent-color-rgb, 166, 113, 101), 0.4), 0 1px 0 rgba(255, 255, 255, 0.15) inset;
 }
 
 .btn-primary:active {
@@ -208,8 +208,8 @@
 
 .btn-secondary {
   background: transparent;
-  color: #734E46;
-  border: 1px solid rgba(115, 78, 70, 0.3);
+  color: var(--accent-color, #734E46);
+  border: 1px solid rgba(var(--accent-color-rgb, 115, 78, 70), 0.3);
   border-radius: 16px;
   font-weight: 500;
   font-size: 14px;
@@ -220,7 +220,7 @@
 
 .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(115, 78, 70, 0.5);
+  border-color: rgba(var(--accent-color-rgb, 115, 78, 70), 0.5);
   transform: translateY(-1px);
 }
 
@@ -233,7 +233,7 @@
   background: rgba(255, 255, 255, 0.42);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(166, 113, 101, 0.2);
+  border: 1px solid rgba(var(--accent-color-rgb, 166, 113, 101), 0.2);
   border-radius: 12px;
   padding: 10px 14px;
   font-size: 14px;
@@ -245,8 +245,8 @@
 }
 
 .premium-input:focus {
-  border-color: #A67165;
-  box-shadow: 0 0 0 3px rgba(166, 113, 101, 0.15);
+  border-color: var(--accent-color, #A67165);
+  box-shadow: 0 0 0 3px rgba(var(--accent-color-rgb, 166, 113, 101), 0.25);
 }
 
 /* ─── Dropdown ────────────────────────────────────────────────────────────── */
@@ -343,9 +343,9 @@
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, #A67165 0%, #83544A 100%);
+  background: var(--accent-color, #A67165);
   color: #ffffff;
-  box-shadow: 0 4px 15px rgba(166, 113, 101, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 18px rgba(var(--accent-color-rgb, 166, 113, 101), 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   font-weight: 600;
 }
 
@@ -389,12 +389,12 @@
 
 /* ─── Toggle overrides ───────────────────────────────────────────────────── */
 .premium-toggle-track {
-  background: rgba(166, 113, 101, 0.2);
+  background: rgba(var(--accent-color-rgb, 166, 113, 101), 0.2);
   transition: background 200ms ease;
 }
 
 .premium-toggle-track.on {
-  background: #A67165;
+  background: var(--accent-color, #A67165);
 }
 
 .premium-toggle-thumb {
@@ -410,7 +410,8 @@
   filter: blur(50px);
   pointer-events: none;
   z-index: 0;
-  opacity: 0.45;
+  opacity: 0.25;
+  background-color: var(--accent-color, #A67165);
 }
 
 /* ─── Dark Mode Typography Overrides ─────────────────────────────────────── */
@@ -426,4 +427,122 @@
 
 .dark .small-text {
   color: #8C7B6E;
+}
+
+/* ─── Splash Screen Handcrafted GPU-Accelerated Animations ────────────── */
+@keyframes splashDashDraw {
+  0% {
+    stroke-dashoffset: 1000;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes wavePulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) translate3d(0, 0, 0);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.1) translate3d(2px, -2px, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.45) translate3d(4px, -4px, 0);
+  }
+}
+
+@keyframes logoPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg) translate3d(0, 0, 0);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.05) rotate(2deg) translate3d(0, 0, 0);
+  }
+  85% {
+    transform: scale(0.97) rotate(-1deg) translate3d(0, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg) translate3d(0, 0, 0);
+  }
+}
+
+@keyframes textTrackingExpand {
+  0% {
+    opacity: 0;
+    letter-spacing: 0.3em;
+    transform: translate3d(0, 10px, 0);
+  }
+  100% {
+    opacity: 1;
+    letter-spacing: 0.18em;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes statusFadeSlide {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes ambientPulseGlow {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.12) translate3d(0, 0, 0);
+  }
+}
+
+.splash-dash-ring {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: splashDashDraw 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: stroke-dashoffset;
+}
+
+.splash-wave-1 {
+  animation: wavePulse 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite 0.1s;
+  will-change: transform, opacity;
+}
+.splash-wave-2 {
+  animation: wavePulse 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite 0.4s;
+  will-change: transform, opacity;
+}
+.splash-wave-3 {
+  animation: wavePulse 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite 0.7s;
+  will-change: transform, opacity;
+}
+
+.splash-logo-animated {
+  animation: logoPopIn 1.0s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.splash-text-reveal {
+  animation: textTrackingExpand 1.0s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.3s;
+  will-change: transform, opacity;
+}
+
+.splash-status-text {
+  animation: statusFadeSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.splash-ambient-bg {
+  animation: ambientPulseGlow 3.5s ease-in-out infinite;
+  will-change: transform, opacity;
 }

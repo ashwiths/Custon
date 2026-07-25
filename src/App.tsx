@@ -3,8 +3,10 @@ import { MainLayout } from "@/layouts/MainLayout"
 import { Dashboard } from "@/pages/Dashboard"
 import { Settings } from "@/pages/Settings"
 import { type ActivePage } from "@/components/Sidebar"
+import { SplashScreen } from "@/components/SplashScreen"
 
 function App() {
+  const [isLoading, setIsLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState<ActivePage>("dashboard")
   const [darkMode, setDarkMode] = useState(() => {
     try {
@@ -76,14 +78,17 @@ function App() {
   }
 
   return (
-    <MainLayout
-      currentPage={currentPage}
-      setCurrentPage={setCurrentPage}
-      darkMode={darkMode}
-      setDarkMode={setDarkMode}
-    >
-      {renderPage()}
-    </MainLayout>
+    <>
+      {isLoading && <SplashScreen onComplete={() => setIsLoading(false)} />}
+      <MainLayout
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+      >
+        {renderPage()}
+      </MainLayout>
+    </>
   )
 }
 

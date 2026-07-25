@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Sun, Moon, Monitor, Upload, Settings } from "lucide-react"
+import { applyAccentColor } from "@/utils/accentColor"
 
 interface AppearanceTabProps {
   darkMode: boolean
@@ -79,8 +80,7 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ darkMode, setDarkM
   const handleAccentChange = (color: string, isCustom = false) => {
     setAccentColor(color)
     setIsCustomColor(isCustom)
-    localStorage.setItem("appearance_accent_color", color)
-    document.documentElement.style.setProperty("--accent-color", color)
+    applyAccentColor(color)
   }
 
   // Handle other saves on change

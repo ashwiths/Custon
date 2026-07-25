@@ -106,11 +106,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
             style={{ 
               width: "28px", 
               height: "28px", 
-              background: "rgba(166,113,101,0.2)",
-              border: "1px solid rgba(166,113,101,0.25)"
+              background: "rgba(var(--accent-color-rgb, 166,113,101), 0.2)",
+              border: "1px solid rgba(var(--accent-color-rgb, 166,113,101), 0.3)"
             }}
           >
-            <span style={{ color: "#A67165", fontSize: "13px", fontWeight: 900, fontFamily: "system-ui, sans-serif" }}>c</span>
+            <span style={{ color: "var(--accent-color, #A67165)", fontSize: "13px", fontWeight: 900, fontFamily: "system-ui, sans-serif" }}>c</span>
           </div>
           <div>
             <div style={{ fontSize: "11px", fontWeight: 600, color: "rgba(242,216,194,0.7)" }}>v0.1.0 • Tauri v2</div>

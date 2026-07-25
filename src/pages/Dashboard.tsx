@@ -17,7 +17,6 @@ import {
 } from "lucide-react"
 import { CreateAppShortcut } from "@/pages/CreateAppShortcut"
 import { CreateFullClose } from "@/pages/CreateFullClose"
-import { InteractiveDial } from "@/components/InteractiveDial"
 import { animate, splitText, stagger } from "animejs"
 
 // Handcrafted SVG Icons for Application Logos
@@ -348,16 +347,30 @@ export const Dashboard: React.FC = () => {
 
   // Save App Shortcut handler
   const handleSaveAppShortcut = (shortcutName: string, selectedApps: string[], keys: string[], mode?: string) => {
+    const getFormattedAppName = (id: string) => {
+      switch (id.toLowerCase()) {
+        case "chrome": return "Chrome"
+        case "vscode": return "VS Code"
+        case "discord": return "Discord"
+        case "edge": return "Edge"
+        case "spotify": return "Spotify"
+        case "notepad": return "Notepad"
+        default:
+          return id.split(/[-_\s]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+      }
+    }
+
     const defaultAppsList = ["chrome", "vscode", "discord"]
+    const appsToUse = selectedApps.length > 0 ? selectedApps : defaultAppsList
     const generatedName = shortcutName.trim()
       ? shortcutName.trim()
-      : selectedApps.map(id => id).join(" • ")
+      : appsToUse.map(getFormattedAppName).join(" • ")
 
     if (editingShortcutId) {
       setShortcuts(shortcuts.map(s => s.id === editingShortcutId ? {
         ...s,
         name: generatedName,
-        apps: selectedApps.length > 0 ? selectedApps : defaultAppsList,
+        apps: appsToUse,
         keys,
         executionMode: (mode as "stealth" | "close") || "stealth",
         lastUsed: "Just now"
@@ -367,7 +380,7 @@ export const Dashboard: React.FC = () => {
       const newShortcut: ShortcutItem = {
         id: Date.now().toString(),
         name: generatedName,
-        apps: selectedApps.length > 0 ? selectedApps : defaultAppsList,
+        apps: appsToUse,
         keys,
         status: "Enabled",
         lastUsed: "Just now",
@@ -511,12 +524,9 @@ export const Dashboard: React.FC = () => {
             </div>
           )}
           <div className="flex flex-col justify-center gap-3 text-left py-2 relative">
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:block">
-              <InteractiveDial />
-            </div>
             <h1 
               ref={titleRef}
-              className="text-[44px] font-black tracking-tight text-[#252326] dark:text-[#F2D8C2] leading-tight pr-24"
+              className="text-[44px] font-black tracking-tight text-[#252326] dark:text-[#F2D8C2] leading-tight"
             >
               Module imports
             </h1>
@@ -621,12 +631,12 @@ export const Dashboard: React.FC = () => {
                           </div>
                           <div className="space-y-1 text-left min-w-0 flex-1">
                             <span 
-                              className="text-xs sm:text-sm font-bold text-[#252326] dark:text-[#F2D8C2] truncate max-w-[140px] sm:max-w-[200px] md:max-w-[260px] block"
+                              className="text-xs sm:text-sm font-bold text-[#252326] dark:text-[#F2D8C2] truncate block"
                               title={item.name}
                             >
                               {item.name}
                             </span>
-                            <div className="flex flex-wrap items-center gap-2 mt-1 min-w-0">
+                            <div className="flex items-center gap-2 mt-1 min-w-0 flex-wrap">
                               <div className="flex items-center gap-1 text-[11px] font-mono text-[#6B5B54] dark:text-[#A69281] shrink-0">
                                 {item.keys.map((key, index) => (
                                   <React.Fragment key={index}>

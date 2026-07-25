@@ -33,28 +33,28 @@ export const InteractiveDial: React.FC = () => {
 
   return (
     <div 
-      className="flex flex-col items-center justify-center p-3 select-none transition-all duration-300"
+      className="flex flex-col items-center justify-center p-2 select-none transition-all duration-300"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
         ref={dialRef}
-        className="relative w-16 h-16 rounded-full border border-[rgba(166,113,101,0.25)] dark:border-[#C98D74]/30 bg-white/40 dark:bg-black/20 backdrop-blur-md flex items-center justify-center shadow-[0_4px_20px_rgba(115,78,70,0.06)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)] transition-all duration-300 hover:scale-[1.08] hover:border-[#A67165]/50 dark:hover:border-[#C98D74]/50 cursor-pointer"
+        className="relative w-16 h-16 rounded-full border border-[#C98D74]/40 bg-[#2A2322]/85 dark:bg-[#1C1716]/90 backdrop-blur-md flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 hover:scale-105 hover:border-[#C98D74] cursor-pointer"
         style={{
           boxShadow: isHovered 
-            ? "0 8px 32px 0 rgba(166, 113, 101, 0.15)" 
-            : "0 4px 20px 0 rgba(115, 78, 70, 0.04)"
+            ? "0 8px 28px 0 rgba(201, 141, 116, 0.3)" 
+            : "0 4px 20px 0 rgba(0, 0, 0, 0.35)"
         }}
       >
         {/* Outer dotted track ring */}
-        <div className="absolute inset-1.5 rounded-full border border-dashed border-[#A67165]/20 dark:border-[#C98D74]/20 animate-[spin_40s_linear_infinite]" />
+        <div className="absolute inset-1.5 rounded-full border border-dashed border-[#C98D74]/35 animate-[spin_50s_linear_infinite]" />
         
         {/* Center pivot pin */}
-        <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-[#A67165] to-[#734E46] dark:from-[#C98D74] dark:to-[#A67165] z-10 shadow-md" />
+        <div className="w-3 h-3 rounded-full bg-[#C98D74] shadow-[0_0_8px_rgba(201,141,116,0.6)] z-10" />
         
         {/* Rotating clock pointer/hand */}
         <div
-          className="absolute w-1/2 h-0.5 left-1/2 origin-left bg-gradient-to-r from-transparent to-[#A67165] dark:to-[#C98D74] rounded-full transition-transform duration-75 ease-out"
+          className="absolute w-[38%] h-0.5 left-1/2 origin-left bg-[#C98D74] rounded-full transition-transform duration-75 ease-out shadow-[0_0_6px_rgba(201,141,116,0.5)]"
           style={{
             transform: `rotate(${angle}deg)`,
           }}
@@ -62,22 +62,22 @@ export const InteractiveDial: React.FC = () => {
 
         {/* Dynamic visual trail/glow pointing towards the mouse */}
         <div
-          className="absolute inset-0 rounded-full opacity-20 pointer-events-none transition-transform duration-75 ease-out"
+          className="absolute inset-0 rounded-full opacity-25 pointer-events-none transition-transform duration-75 ease-out"
           style={{
             transform: `rotate(${angle + 90}deg)`,
-            background: "radial-gradient(circle at 50% 10%, rgba(166, 113, 101, 0.4) 0%, transparent 60%)"
+            background: "radial-gradient(circle at 50% 10%, rgba(201, 141, 116, 0.5) 0%, transparent 60%)"
           }}
         />
 
         {/* 12, 3, 6, 9 Cardinal Ticks */}
-        <div className="absolute top-1 left-1/2 -translate-x-1/2 w-0.5 h-1.5 bg-[#A67165]/50 dark:bg-[#C98D74]/50 rounded-full" />
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0.5 h-1.5 bg-[#A67165]/50 dark:bg-[#C98D74]/50 rounded-full" />
-        <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1.5 h-0.5 bg-[#A67165]/50 dark:bg-[#C98D74]/50 rounded-full" />
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 w-1.5 h-0.5 bg-[#A67165]/50 dark:bg-[#C98D74]/50 rounded-full" />
+        <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-0.5 h-1.5 bg-[#C98D74]/70 rounded-full" />
+        <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-0.5 h-1.5 bg-[#C98D74]/70 rounded-full" />
+        <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-0.5 bg-[#C98D74]/70 rounded-full" />
+        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-0.5 bg-[#C98D74]/70 rounded-full" />
       </div>
       
-      <span className="text-[10px] font-bold text-[#9B8179] dark:text-[#A69281] uppercase tracking-wider mt-2 opacity-70 animate-pulse">
-        Track Dial
+      <span className="text-[10px] font-black text-[#C98D74] dark:text-[#F2D8C2]/90 uppercase tracking-widest mt-2 select-none">
+        TRACK DIAL
       </span>
     </div>
   )

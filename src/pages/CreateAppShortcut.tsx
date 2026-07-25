@@ -189,10 +189,18 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
 
   const allApps = [...runningApps, ...customApps]
 
-  const filteredApps = allApps.filter(app => 
-    app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    app.desc.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Hide offline apps unless explicitly selected by the user or searched
+  const filteredApps = allApps.filter(app => {
+    const matchesSearch = app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.desc.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    if (searchQuery.trim().length > 0) {
+      return matchesSearch
+    }
+    
+    // By default: ONLY show active/running apps or apps selected by user
+    return (app.isRunning || selectedApps.includes(app.id)) && matchesSearch
+  })
 
   const handleKeyRecorder = (e: React.KeyboardEvent<HTMLInputElement>) => {
     e.preventDefault()
@@ -319,18 +327,18 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
               Showing active applications running in the background. Click cards to select target apps for your shortcut.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <button 
               type="button"
               onClick={fetchRunningApps}
               disabled={isLoadingApps}
-              className="px-3.5 py-2.5 rounded-xl bg-white/10 dark:bg-white/5 border border-white/15 hover:bg-[#A67165]/20 text-xs font-bold text-[#252326] dark:text-[#F2D8C2] flex items-center gap-1.5 cursor-pointer transition-all"
+              className="px-4 py-2.5 rounded-xl bg-white/10 dark:bg-white/5 border border-white/15 hover:bg-white/15 text-xs font-bold text-[#252326] dark:text-[#F2D8C2] flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap shrink-0"
               title="Rescan active running applications on PC"
             >
-              <RotateCw className={`w-3.5 h-3.5 text-[#A67165] ${isLoadingApps ? "animate-spin" : ""}`} />
+              <RotateCw className={`w-3.5 h-3.5 text-[var(--accent-color,#A67165)] ${isLoadingApps ? "animate-spin" : ""}`} />
               <span>Scan Active Apps</span>
             </button>
-            <div className="relative w-full max-w-[220px]">
+            <div className="relative w-full sm:w-[220px] shrink-0">
               <input 
                 type="text"
                 value={searchQuery}
@@ -345,12 +353,12 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
 
         {isLoadingApps ? (
           <div className="p-8 flex items-center justify-center gap-3 text-sm text-[#A69281]">
-            <RotateCw className="w-5 h-5 animate-spin text-[#A67165]" />
+            <RotateCw className="w-5 h-5 animate-spin text-[var(--accent-color,#A67165)]" />
             <span>Scanning PC for active background applications...</span>
           </div>
         ) : filteredApps.length === 0 ? (
           <div className="p-8 rounded-2xl bg-white/5 border border-white/10 text-center space-y-2 mb-6">
-            <p className="text-sm font-bold text-[#F2D8C2]">No matching running applications found</p>
+            <p className="text-sm font-bold text-[#F2D8C2]">No active running applications found</p>
             <p className="text-xs text-[#A69281]">Launch your app on PC and click <strong>Scan Active Apps</strong>, or type your custom app name below.</p>
           </div>
         ) : (
@@ -364,11 +372,11 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
                   onClick={() => handleToggleApp(app.id)}
                   className={`relative p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between text-left select-none ${
                     isSelected 
-                      ? "bg-[rgba(166,113,101,0.12)] border-[#A67165] scale-[1.02] shadow-md ring-1 ring-[#A67165]/50" 
+                      ? "bg-[rgba(var(--accent-color-rgb,166,113,101),0.15)] border-[var(--accent-color,#A67165)] scale-[1.02] shadow-md ring-1 ring-[var(--accent-color,#A67165)]/50" 
                       : "bg-white/10 dark:bg-white/5 border-white/12 hover:border-white/30"
                   }`}
                 >
-                  {isSelected && <CheckCircle2 className="absolute top-3 right-3 h-4 w-4 text-[#A67165]" />}
+                  {isSelected && <CheckCircle2 className="absolute top-3 right-3 h-4 w-4 text-[var(--accent-color,#A67165)]" />}
                   <div className="w-10 h-10 rounded-xl bg-white/50 dark:bg-white/10 flex items-center justify-center border border-white/20 mb-3">
                     {app.icon || getAppIcon(app.id)}
                   </div>
@@ -387,17 +395,17 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
           </div>
         )}
 
-        <form onSubmit={handleAddCustomApp} className="flex gap-2 max-w-[500px] border-t border-white/10 pt-4">
+        <form onSubmit={handleAddCustomApp} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 border-t border-white/10 pt-5 mt-4">
           <input
             type="text"
             value={customAppName}
             onChange={(e) => setCustomAppName(e.target.value)}
             placeholder="App not listed? Type custom app or process name (e.g. ChatGPT, Claude)..."
-            className="flex-1 text-xs px-4 py-2.5 rounded-xl border border-[rgba(166,113,101,0.2)] dark:border-[#A67165]/40 bg-white/55 dark:bg-[#1E1B1A] outline-none text-[#252326] dark:text-[#F2D8C2]"
+            className="flex-1 text-xs px-4 py-3 rounded-xl border border-[rgba(166,113,101,0.2)] dark:border-[#A67165]/40 bg-white/55 dark:bg-[#1E1B1A] outline-none text-[#252326] dark:text-[#F2D8C2]"
           />
           <button
             type="submit"
-            className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#A67165] hover:bg-[#734E46] transition-all border-none cursor-pointer"
+            className="px-5 py-3 rounded-xl text-xs font-bold text-white btn-primary flex items-center justify-center gap-1.5 transition-all border-none cursor-pointer whitespace-nowrap shrink-0"
           >
             + Add Target App
           </button>
