@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { CreateAppShortcut } from "@/pages/CreateAppShortcut"
 import { CreateFullClose } from "@/pages/CreateFullClose"
+import { AnimatedWelcomeHeader } from "@/components/AnimatedWelcomeHeader"
 import { animate, splitText, stagger } from "animejs"
 
 // Handcrafted SVG Icons for Application Logos
@@ -523,22 +524,8 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
           )}
-          <div className="flex flex-col justify-center gap-3 text-left py-2 relative">
-            <h1 
-              ref={titleRef}
-              className="text-[44px] font-black tracking-tight text-[#252326] dark:text-[#F2D8C2] leading-tight"
-            >
-              Module imports
-            </h1>
-            <h2 className="text-[15px] font-semibold text-[#6B5B54] dark:text-[#A69281] opacity-0 subtitle-text max-w-[800px] leading-relaxed space-y-3 mt-2">
-              <p>
-                Anime.js has a very flexible modules-first API and excellent tree shaking support, making it one of the most lightweight JavaScript animation libraries.
-              </p>
-              <p>
-                Anime.js modules can be imported straight from the main 'animejs' module, or more granularly from specific subpaths, either by using a bundler like Vite or esbuild, or natively without a build step using importmap.
-              </p>
-            </h2>
-          </div>
+          {/* Animated Auto-Typing Welcome Header powered by Anime.js */}
+          <AnimatedWelcomeHeader />
 
           {/* ROW 1: 2 DISTINCT HERO BOXES */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
