@@ -31,4 +31,11 @@ windows-sys = { version = "0.52", features = [
     "Win32_System_Registry"
 ] }
 
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
+
 
