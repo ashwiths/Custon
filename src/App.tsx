@@ -28,19 +28,17 @@ function App() {
         const { getCurrentWindow } = await import("@tauri-apps/api/window")
         const currentWindow = getCurrentWindow()
         
-        unlisten = await currentWindow.onCloseRequested(async (event) => {
-          const minimizeToTray = localStorage.getItem("settings_minimize_to_tray") !== "false"
-          if (minimizeToTray) {
-            event.preventDefault()
-            await currentWindow.hide()
-          } else {
-            // Restore all hidden windows before quitting to ensure no orphan hidden windows
-            try {
-              const { invoke } = await import("@tauri-apps/api/core")
-              await invoke("restore_all_hidden")
-            } catch (e) {
-              console.error("Failed to restore windows on exit", e)
-            }
+        unlisten = await currentWindow.onCloseRequested(async () => {
+          try {
+            const { invoke } = await import("@tauri-apps/api/core")
+            await invoke("restore_all_hidden")
+          } catch (e) {
+            console.error("Failed to restore windows on exit", e)
+          }
+          try {
+            await currentWindow.destroy()
+          } catch {
+            // Non-Tauri fallback
           }
         })
       } catch (e) {

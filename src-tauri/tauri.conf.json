@@ -43,14 +43,6 @@
         "installerHooks": "nsis/installer_hooks.nsh"
       }
     },
-    "macOS": {
-      "frameworks": [],
-      "minimumSystemVersion": "10.15",
-      "exceptionDomain": "",
-      "signingIdentity": null,
-      "providerShortName": null,
-      "entitlements": null
-    },
     "linux": {
       "deb": {
         "depends": []
