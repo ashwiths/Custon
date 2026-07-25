@@ -65,7 +65,8 @@ pub fn run() {
             commands::system::get_running_apps,
             commands::settings::set_autostart,
             commands::settings::get_autostart_status,
-            commands::system::restore_all_hidden
+            commands::system::restore_all_hidden,
+            commands::system::send_exam_complaint
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

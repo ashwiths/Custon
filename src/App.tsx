@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { MainLayout } from "@/layouts/MainLayout"
 import { Dashboard } from "@/pages/Dashboard"
 import { Settings } from "@/pages/Settings"
+import { HelpPage } from "@/pages/Help"
 import { type ActivePage } from "@/components/Sidebar"
 import { SplashScreen } from "@/components/SplashScreen"
 
@@ -72,6 +73,8 @@ function App() {
         return <Dashboard />
       case "settings":
         return <Settings darkMode={darkMode} setDarkMode={setDarkMode} onBack={() => setCurrentPage("dashboard")} />
+      case "help":
+        return <HelpPage />
       default:
         return <Dashboard />
     }

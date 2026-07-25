@@ -1,10 +1,10 @@
 import * as React from "react"
-import { LayoutDashboard, Settings } from "lucide-react"
+import { LayoutDashboard, Settings, HelpCircle } from "lucide-react"
 import { cn } from "@/utils/cn"
 
 import logoIcon from "@/assets/logo_icon.png"
 
-export type ActivePage = "dashboard" | "settings"
+export type ActivePage = "dashboard" | "settings" | "help"
 
 interface SidebarProps {
   currentPage: ActivePage
@@ -15,6 +15,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
   const menuItems = [
     { id: "dashboard" as ActivePage, label: "Dashboard", icon: LayoutDashboard },
     { id: "settings" as ActivePage, label: "Settings", icon: Settings },
+    { id: "help" as ActivePage, label: "Help & Support", icon: HelpCircle },
   ]
 
   return (
