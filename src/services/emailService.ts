@@ -8,9 +8,9 @@ import emailjs from "@emailjs/browser"
  * - VITE_EMAILJS_PUBLIC_KEY
  */
 export const EMAILJS_CONFIG = {
-  SERVICE_ID: import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_custon_support",
-  TEMPLATE_ID: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || "template_ticket_feedback",
-  PUBLIC_KEY: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "YOUR_EMAILJS_PUBLIC_KEY",
+  SERVICE_ID: import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_6cjg02p",
+  TEMPLATE_ID: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || "template_k056qhi",
+  PUBLIC_KEY: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "-hsu_e4K7ntVUa-z2",
 }
 
 export interface TicketPayload {
@@ -28,8 +28,12 @@ export async function sendSupportTicketEmail(payload: TicketPayload): Promise<{ 
   const templateParams = {
     ticket_id: payload.ticketId,
     user_email: payload.userEmail,
+    email: payload.userEmail,
+    from_name: payload.userEmail,
+    reply_to: payload.userEmail,
     category: payload.category,
     description: payload.description,
+    message: `[${payload.category}] - Priority: ${payload.priority.toUpperCase()}\n\n${payload.description}\n\nUser Email: ${payload.userEmail}\nTicket ID: ${payload.ticketId}`,
     priority: payload.priority.toUpperCase(),
     include_diagnostics: payload.includeDiagnostics ? "YES" : "NO",
     diagnostics_log: payload.diagnosticsLog || "OS: Windows (x64) • Tauri v2 • Engine: Active",
