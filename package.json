@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:installer": "npx tauri build",
+    "build:all": "npm run build && npx tauri build",
     "preview": "vite preview",
     "tauri": "tauri"
   },
