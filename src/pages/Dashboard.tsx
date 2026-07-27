@@ -1,7 +1,6 @@
 import * as React from "react"
 import { 
   Keyboard, 
-  Monitor, 
   Plus, 
   ChevronRight,
   Trash2,
@@ -632,50 +631,6 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* ROW 3: FEATURE HIGHLIGHTS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[850px] mx-auto">
-            <div className="glass-card flex flex-col justify-between p-6 rounded-[24px] border-[rgba(255,255,255,0.22)]">
-              <div>
-                <div className="w-12 h-12 rounded-xl bg-[rgba(166,113,101,0.08)] flex items-center justify-center text-[#A67165] mb-4">
-                  <Monitor className="h-6 w-6" />
-                </div>
-                <div className="space-y-1.5 text-left">
-                  <h4 className="text-base font-bold text-[#252326] dark:text-[#F2D8C2]">Targeted App Control</h4>
-                  <p className="text-[13px] font-medium text-[#6B5B54] dark:text-[#A69281] leading-relaxed">
-                    Select target apps to hide or restore together in background.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="glass-card flex flex-col justify-between p-6 rounded-[24px] border-[rgba(255,255,255,0.22)]">
-              <div>
-                <div className="w-12 h-12 rounded-xl bg-[rgba(166,113,101,0.08)] flex items-center justify-center text-[#A67165] mb-4">
-                  <Power className="h-6 w-6 text-[#A67165]" />
-                </div>
-                <div className="space-y-1.5 text-left">
-                  <h4 className="text-base font-bold text-[#252326] dark:text-[#F2D8C2]">Close All Windows</h4>
-                  <p className="text-[13px] font-medium text-[#6B5B54] dark:text-[#A69281] leading-relaxed">
-                    Instantly close all open desktop windows with 1 key.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="glass-card flex flex-col justify-between p-6 rounded-[24px] border-[rgba(255,255,255,0.22)]">
-              <div>
-                <div className="w-12 h-12 rounded-xl bg-[rgba(166,113,101,0.08)] flex items-center justify-center text-[#A67165] mb-4">
-                  <Keyboard className="h-6 w-6" />
-                </div>
-                <div className="space-y-1.5 text-left">
-                  <h4 className="text-base font-bold text-[#252326] dark:text-[#F2D8C2]">Global Win32 Hotkeys</h4>
-                  <p className="text-[13px] font-medium text-[#6B5B54] dark:text-[#A69281] leading-relaxed">
-                    Custom key combinations that trigger anywhere in Windows.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
         </>
       )}
 

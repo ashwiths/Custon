@@ -1,6 +1,5 @@
 import * as React from "react"
 import {
-  Monitor,
   Keyboard,
   Shield,
   Play,
@@ -14,7 +13,6 @@ import {
 } from "lucide-react"
 
 // Lazy-loaded modular settings tab panels for optimal startup performance & bundle splitting
-const AppearanceTab = React.lazy(() => import("@/components/settings/AppearanceTab").then(m => ({ default: m.AppearanceTab })))
 const HotkeysTab = React.lazy(() => import("@/components/settings/HotkeysTab").then(m => ({ default: m.HotkeysTab })))
 const SecurityTab = React.lazy(() => import("@/components/settings/SecurityTab").then(m => ({ default: m.SecurityTab })))
 const StartupTab = React.lazy(() => import("@/components/settings/StartupTab").then(m => ({ default: m.StartupTab })))
@@ -26,17 +24,16 @@ const SyncTab = React.lazy(() => import("@/components/settings/SyncTab").then(m 
 const ExperimentalTab = React.lazy(() => import("@/components/settings/ExperimentalTab").then(m => ({ default: m.ExperimentalTab })))
 
 interface SettingsProps {
-  darkMode: boolean
+  darkMode?: boolean
   setDarkMode: (dark: boolean) => void
   onBack: () => void
 }
 
-export const Settings: React.FC<SettingsProps> = ({ darkMode, setDarkMode, onBack }) => {
-  const [activeTab, setActiveTab] = React.useState("appearance")
+export const Settings: React.FC<SettingsProps> = ({ setDarkMode, onBack }) => {
+  const [activeTab, setActiveTab] = React.useState("hotkeys")
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
 
   const tabs = [
-    { id: "appearance", label: "Appearance", icon: Monitor, component: <AppearanceTab darkMode={darkMode} setDarkMode={setDarkMode} /> },
     { id: "hotkeys", label: "Hotkeys", icon: Keyboard, component: <HotkeysTab /> },
     { id: "security", label: "Security", icon: Shield, component: <SecurityTab /> },
     { id: "startup", label: "Startup", icon: Play, component: <StartupTab /> },

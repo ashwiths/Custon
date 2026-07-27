@@ -15,7 +15,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
   const menuItems = [
     { id: "dashboard" as ActivePage, label: "Dashboard", icon: LayoutDashboard },
-    { id: "target-shortcuts" as ActivePage, label: "Target Shortcuts", icon: Zap },
+    { id: "target-shortcuts" as ActivePage, label: "Active Shortcuts", icon: Zap },
     { id: "settings" as ActivePage, label: "Settings", icon: Settings },
     { id: "help" as ActivePage, label: "Help & Support", icon: HelpCircle },
   ]
