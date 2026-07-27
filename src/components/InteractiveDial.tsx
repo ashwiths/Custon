@@ -6,28 +6,49 @@ export const InteractiveDial: React.FC = () => {
   const [isHovered, setIsHovered] = React.useState(false)
 
   React.useEffect(() => {
+    let animFrameId: number
+    let currentAngle = 0
+    let targetAngle = 0
+    let lastMouseMoveTime = Date.now()
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!dialRef.current) return
       
       const rect = dialRef.current.getBoundingClientRect()
-      // Center coordinates of the dial relative to client window
       const centerX = rect.left + rect.width / 2
       const centerY = rect.top + rect.height / 2
       
-      // Calculate delta between mouse and center
       const dx = e.clientX - centerX
       const dy = e.clientY - centerY
       
-      // Calculate angle in radians and convert to degrees
       const radians = Math.atan2(dy, dx)
       const degrees = radians * (180 / Math.PI)
       
-      setAngle(degrees)
+      // Calculate shortest angular difference (unwrap angle) to prevent 360° flip glitches
+      let diff = (degrees - (targetAngle % 360) + 540) % 360 - 180
+      targetAngle += diff
+      lastMouseMoveTime = Date.now()
+    }
+
+    const updateAnimation = () => {
+      const now = Date.now()
+      // If mouse is idle for > 3 seconds, add slow ambient rotation
+      if (now - lastMouseMoveTime > 3000) {
+        targetAngle += 0.4
+      }
+
+      // Smooth 60fps linear interpolation (lerp) towards target angle
+      currentAngle += (targetAngle - currentAngle) * 0.18
+      setAngle(currentAngle)
+      animFrameId = requestAnimationFrame(updateAnimation)
     }
 
     window.addEventListener("mousemove", handleMouseMove)
+    animFrameId = requestAnimationFrame(updateAnimation)
+
     return () => {
       window.removeEventListener("mousemove", handleMouseMove)
+      cancelAnimationFrame(animFrameId)
     }
   }, [])
 
@@ -39,10 +60,10 @@ export const InteractiveDial: React.FC = () => {
     >
       <div
         ref={dialRef}
-        className="relative w-16 h-16 rounded-full border border-[#C98D74]/40 bg-[#2A2322]/85 dark:bg-[#1C1716]/90 backdrop-blur-md flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-300 hover:scale-105 hover:border-[#C98D74] cursor-pointer"
+        className="relative w-16 h-16 rounded-full border border-[#C98D74]/40 bg-[#2A2322]/85 dark:bg-[#1C1716]/90 backdrop-blur-md flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-transform duration-300 hover:scale-105 hover:border-[#C98D74] cursor-pointer"
         style={{
           boxShadow: isHovered 
-            ? "0 8px 28px 0 rgba(201, 141, 116, 0.3)" 
+            ? "0 8px 28px 0 rgba(201, 141, 116, 0.35)" 
             : "0 4px 20px 0 rgba(0, 0, 0, 0.35)"
         }}
       >
@@ -54,18 +75,20 @@ export const InteractiveDial: React.FC = () => {
         
         {/* Rotating clock pointer/hand */}
         <div
-          className="absolute w-[38%] h-0.5 left-1/2 origin-left bg-[#C98D74] rounded-full transition-transform duration-75 ease-out shadow-[0_0_6px_rgba(201,141,116,0.5)]"
+          className="absolute w-[38%] h-0.5 left-1/2 origin-left bg-[#C98D74] rounded-full shadow-[0_0_6px_rgba(201,141,116,0.6)]"
           style={{
             transform: `rotate(${angle}deg)`,
+            willChange: "transform"
           }}
         />
 
-        {/* Dynamic visual trail/glow pointing towards the mouse */}
+        {/* Dynamic visual trail/glow pointing towards the pointer */}
         <div
-          className="absolute inset-0 rounded-full opacity-25 pointer-events-none transition-transform duration-75 ease-out"
+          className="absolute inset-0 rounded-full opacity-25 pointer-events-none"
           style={{
             transform: `rotate(${angle + 90}deg)`,
-            background: "radial-gradient(circle at 50% 10%, rgba(201, 141, 116, 0.5) 0%, transparent 60%)"
+            background: "radial-gradient(circle at 50% 10%, rgba(201, 141, 116, 0.6) 0%, transparent 60%)",
+            willChange: "transform"
           }}
         />
 
