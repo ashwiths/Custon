@@ -83,10 +83,7 @@ const getAppIcon = (appId: string) => {
 
 const STORAGE_KEY = "custom_workspace_shortcuts"
 
-const DEFAULT_SHORTCUTS: ShortcutItem[] = [
-  { id: "1", name: "Chrome • VS Code • Discord", apps: ["chrome", "vscode", "discord"], keys: ["Ctrl", "Shift", "Q"], status: "Enabled", lastUsed: "2 mins ago", executionMode: "stealth" },
-  { id: "2", name: "Close All Open Windows", apps: ["all-apps"], keys: ["Ctrl", "Alt", "X"], status: "Enabled", lastUsed: "5 mins ago", isFullClose: true },
-]
+const DEFAULT_SHORTCUTS: ShortcutItem[] = []
 
 type ViewMode = "list" | "create-app-shortcut" | "create-full-close"
 
@@ -102,7 +99,10 @@ export const TargetShortcuts: React.FC = () => {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+        if (Array.isArray(parsed)) {
+          // Filter out dummy initial sample shortcuts
+          return parsed.filter(item => item.id !== "1" && item.id !== "2")
+        }
       }
     } catch {
       // Fallback
@@ -393,8 +393,12 @@ export const TargetShortcuts: React.FC = () => {
         </div>
 
         {filteredShortcuts.length === 0 ? (
-          <div className="p-12 text-center text-[#A69281] rounded-2xl bg-black/20 border border-white/10">
-            No target shortcuts found matching query.
+          <div className="p-10 text-center rounded-2xl bg-black/20 border border-white/10 flex flex-col items-center justify-center space-y-2">
+            <Zap className="w-8 h-8 text-[#A67165]/50" />
+            <p className="text-sm font-bold text-[#F2D8C2]">No active target shortcuts found.</p>
+            <p className="text-xs text-[#A69281] max-w-sm leading-relaxed">
+              {searchQuery ? "No shortcuts matching your search query." : "Only real-time user-created shortcuts will appear here. Create your first shortcut from the Customize menu."}
+            </p>
           </div>
         ) : (
           <div className="space-y-5">
