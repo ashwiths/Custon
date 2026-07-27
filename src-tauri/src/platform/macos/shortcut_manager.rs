@@ -23,6 +23,10 @@ impl PlatformShortcutManager for MacosShortcutManager {
     println!("[macOS] Synchronized shortcuts configuration.");
   }
 
+  fn sync_all_key_shortcuts(&self, _shortcuts: Vec<crate::common::models::AllKeyShortcutConfig>) {
+    println!("[macOS] Synchronized all key shortcuts configuration.");
+  }
+
   fn update_hotkey(&self, _new_combo: &str) {
     println!("[macOS] Updated global hotkey combination.");
   }

@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::common::models::{ShortcutConfig, RunningAppInfo, ToggleState, WorkspaceState};
+use crate::common::models::{ShortcutConfig, AllKeyShortcutConfig, RunningAppInfo, ToggleState, WorkspaceState};
 
 // ─── Platform Traits ────────────────────────────────────────────────────────
 
@@ -25,6 +25,7 @@ pub trait PlatformShortcutManager {
         initial_shortcuts: Vec<ShortcutConfig>,
     );
     fn sync_shortcuts(&self, shortcuts: Vec<ShortcutConfig>);
+    fn sync_all_key_shortcuts(&self, shortcuts: Vec<AllKeyShortcutConfig>);
     fn update_hotkey(&self, new_combo: &str);
 }
 

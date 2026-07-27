@@ -93,6 +93,20 @@ pub struct ShortcutConfig {
     pub execution_mode: Option<String>,
 }
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct AllKeyShortcutConfig {
+    pub id: String,
+    pub action: String,
+    #[serde(rename = "defaultShortcut")]
+    pub default_shortcut: String,
+    #[serde(rename = "customShortcut")]
+    pub custom_shortcut: String,
+    pub category: String,
+    pub status: bool,
+    #[serde(rename = "systemAction")]
+    pub system_action: String,
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RunningAppInfo {
     pub id: String,

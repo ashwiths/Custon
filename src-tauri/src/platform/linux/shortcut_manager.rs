@@ -22,6 +22,10 @@ impl PlatformShortcutManager for LinuxShortcutManager {
     println!("[Linux] Synchronized shortcuts configuration.");
   }
 
+  fn sync_all_key_shortcuts(&self, _shortcuts: Vec<crate::common::models::AllKeyShortcutConfig>) {
+    println!("[Linux] Synchronized all key shortcuts configuration.");
+  }
+
   fn update_hotkey(&self, _new_combo: &str) {
     println!("[Linux] Updated global hotkey combination.");
   }

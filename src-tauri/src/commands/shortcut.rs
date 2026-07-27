@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use tauri::State;
-use crate::common::models::ShortcutConfig;
+use crate::common::models::{ShortcutConfig, AllKeyShortcutConfig};
 use crate::platform::current_platform::ShortcutManager;
 use crate::platform::PlatformShortcutManager;
 
@@ -10,6 +10,15 @@ pub fn sync_shortcuts(
     shortcuts: Vec<ShortcutConfig>,
 ) -> Result<bool, String> {
     hotkey_mgr.sync_shortcuts(shortcuts);
+    Ok(true)
+}
+
+#[tauri::command]
+pub fn sync_all_key_shortcuts(
+    hotkey_mgr: State<'_, Arc<ShortcutManager>>,
+    shortcuts: Vec<AllKeyShortcutConfig>,
+) -> Result<bool, String> {
+    hotkey_mgr.sync_all_key_shortcuts(shortcuts);
     Ok(true)
 }
 

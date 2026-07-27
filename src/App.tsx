@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { MainLayout } from "@/layouts/MainLayout"
 import { Dashboard } from "@/pages/Dashboard"
+import { TargetShortcuts } from "@/pages/TargetShortcuts"
 import { Settings } from "@/pages/Settings"
 import { HelpPage } from "@/pages/Help"
 import { type ActivePage } from "@/components/Sidebar"
@@ -58,6 +59,8 @@ function App() {
     switch (currentPage) {
       case "dashboard":
         return <Dashboard />
+      case "target-shortcuts":
+        return <TargetShortcuts />
       case "settings":
         return <Settings darkMode={darkMode} setDarkMode={setDarkMode} onBack={() => setCurrentPage("dashboard")} />
       case "help":

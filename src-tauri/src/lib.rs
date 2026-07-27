@@ -60,6 +60,7 @@ pub fn run() {
             commands::system::toggle_workspace,
             commands::system::toggle_target_shortcut,
             commands::shortcut::sync_shortcuts,
+            commands::shortcut::sync_all_key_shortcuts,
             commands::shortcut::set_workspace_hotkey,
             commands::system::get_workspace_state,
             commands::system::get_running_apps,

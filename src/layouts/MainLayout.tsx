@@ -25,7 +25,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         <main className={`flex-1 ${currentPage === "settings" ? "overflow-hidden p-5" : "overflow-y-auto p-8"}`}>
           <div
             className={`mx-auto animate-fade-up ${
-              currentPage === "settings" ? "w-full max-w-none h-full flex flex-col" : "max-w-[900px] pb-24"
+              currentPage === "settings" ? "w-full max-w-none h-full flex flex-col" : "w-full max-w-[1320px] pb-24"
             }`}
           >
             {children}

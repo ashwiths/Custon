@@ -1,11 +1,11 @@
 import * as React from "react"
-import { LayoutDashboard, Settings, HelpCircle } from "lucide-react"
+import { LayoutDashboard, Zap, Settings, HelpCircle } from "lucide-react"
 import { cn } from "@/utils/cn"
 import { InteractiveDial } from "@/components/InteractiveDial"
 
 import logoIcon from "@/assets/logo_icon.png"
 
-export type ActivePage = "dashboard" | "settings" | "help"
+export type ActivePage = "dashboard" | "target-shortcuts" | "settings" | "help"
 
 interface SidebarProps {
   currentPage: ActivePage
@@ -15,6 +15,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
   const menuItems = [
     { id: "dashboard" as ActivePage, label: "Dashboard", icon: LayoutDashboard },
+    { id: "target-shortcuts" as ActivePage, label: "Target Shortcuts", icon: Zap },
     { id: "settings" as ActivePage, label: "Settings", icon: Settings },
     { id: "help" as ActivePage, label: "Help & Support", icon: HelpCircle },
   ]
