@@ -181,9 +181,7 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
         const conflict = getConflictInfo(comboStr, customizingShortcut?.id)
         if (conflict.hasConflict) {
           setShowConflictNotice(true)
-          setConflictName(conflict.conflictName || "another shortcut")
-          window.alert(`⚠️ KEY ALREADY USED!\n\nThe key combination "${comboStr}" is already assigned to ${conflict.conflictName}.\n\nYou cannot reuse or repeat this key combination! Please choose a different shortcut.`)
-          setRecordedKeys("")
+          setConflictName(conflict.conflictName || "another active shortcut")
         } else {
           setShowConflictNotice(false)
           setConflictName("")
@@ -218,10 +216,9 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
     // Check if hotkey is already in use by another shortcut
     const conflictResult = checkShortcutConflict(trimmed, customizingShortcut.id, shortcuts)
     if (conflictResult.hasConflict) {
-      const alertMsg = `⚠️ KEY COMBINATION ALREADY USED!\n\nThe key combination "${trimmed}" is already assigned to ${conflictResult.conflictName}.\n\nPlease do not repeat shortcut keys! Choose a different key combination.`
-      window.alert(alertMsg)
-      showToast(`⚠️ Hotkey Already Used! "${trimmed}" is assigned to ${conflictResult.conflictName}. Please do not repeat keys!`)
-      setRecordedKeys("")
+      showToast(`⚠️ REPEATED KEY WARNING! "${trimmed}" is already assigned to ${conflictResult.conflictName}. Please do not use repeated keys!`)
+      setShowConflictNotice(true)
+      setConflictName(conflictResult.conflictName || "another active shortcut")
       return
     }
 
@@ -430,16 +427,16 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
 
           {/* CONFLICT WARNING BANNER */}
           {showConflictNotice && (
-            <div className="p-4 rounded-2xl bg-amber-500/20 border-2 border-amber-500/60 text-amber-200 text-xs space-y-2 leading-relaxed animate-fade-up">
-              <div className="flex items-center gap-2 font-bold text-amber-300 text-sm">
-                <AlertTriangle className="w-5 h-5 shrink-0 text-amber-400" />
-                <span>⚠️ KEY COMBINATION ALREADY USED!</span>
+            <div className="p-4 rounded-2xl bg-red-500/20 border-2 border-red-500/60 text-red-200 text-xs space-y-2 leading-relaxed animate-fade-up">
+              <div className="flex items-center gap-2 font-bold text-red-300 text-sm">
+                <AlertTriangle className="w-5 h-5 shrink-0 text-red-400" />
+                <span>⚠️ REPEATED KEY WARNING! DO NOT REPEAT KEYS</span>
               </div>
               <p>
-                The shortcut <strong className="text-white font-mono bg-white/10 px-2 py-0.5 rounded border border-white/20">{recordedKeys}</strong> is already assigned to <strong className="text-amber-300 font-bold">{conflictName}</strong>.
+                The key combination <strong className="text-white font-mono bg-black/60 px-2 py-0.5 rounded border border-white/20">{recordedKeys}</strong> is already assigned to <strong className="text-red-300 font-bold">{conflictName}</strong>.
               </p>
-              <p className="text-amber-300/90 font-bold">
-                Please do not repeat shortcut keys! Choose a different key combination.
+              <p className="text-red-300 font-bold bg-red-950/40 p-2 rounded-xl border border-red-500/30">
+                ⚠️ Repeated shortcut keys are not allowed! Please press a different key combination to avoid conflicts.
               </p>
             </div>
           )}
@@ -737,17 +734,17 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
               <div 
                 key={item.id}
                 onClick={() => openRecordingPage(item)}
-                className="glass-card p-4 rounded-2xl border border-[rgba(255,255,255,0.18)] hover:border-[#A67165]/60 transition-colors duration-200 flex flex-col justify-between space-y-3.5 cursor-pointer group"
+                className="p-4 rounded-2xl bg-[#252123]/75 backdrop-blur-xl border border-white/15 hover:border-[#A67165]/60 hover:shadow-[0_12px_32px_rgba(166,113,101,0.22)] transition-all duration-300 flex flex-col justify-between space-y-4 cursor-pointer group relative overflow-hidden"
               >
                 {/* CARD TOP ROW */}
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center shrink-0 group-hover:bg-[#A67165]/20 group-hover:border-[#A67165] transition-colors">
+                    <div className="w-10 h-10 rounded-xl bg-[#A67165]/15 border border-[#A67165]/30 text-[#F2D8C2] flex items-center justify-center shrink-0 group-hover:bg-[#A67165]/25 group-hover:border-[#A67165] transition-colors shadow-sm">
                       {getActionIcon(item.action)}
                     </div>
                     <div className="min-w-0 text-left">
-                      <h4 className="text-sm font-bold text-[#252326] dark:text-[#F2D8C2] truncate group-hover:text-[#F2D8C2] transition-colors">{item.action}</h4>
-                      <span className="text-[10px] font-semibold text-[#A69281] uppercase tracking-wider block">{item.category}</span>
+                      <h4 className="text-sm font-bold text-white truncate group-hover:text-[#F2D8C2] transition-colors">{item.action}</h4>
+                      <span className="text-[10px] font-bold text-[#A69281] uppercase tracking-wider block mt-0.5">{item.category}</span>
                     </div>
                   </div>
 
@@ -770,13 +767,13 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
                 </div>
 
                 {/* CARD MIDDLE: KEYS COMPARISON */}
-                <div className="p-3 rounded-xl bg-black/50 border border-white/10 text-xs flex items-center justify-between gap-2">
+                <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs flex items-center justify-between gap-2">
                   <div className="min-w-0 text-left">
-                    <span className="text-[9px] font-extrabold text-[#A69281] uppercase tracking-wider block mb-1">Default Windows</span>
+                    <span className="text-[9px] font-extrabold text-[#A69281] uppercase tracking-wider block mb-1.5">Default Windows</span>
                     <div className="inline-flex items-center gap-1 font-mono text-[11px] flex-wrap">
                       {item.defaultShortcut.split("+").map((key, i) => (
                         <React.Fragment key={i}>
-                          <kbd className="px-2 py-0.5 rounded bg-white/10 border border-white/20 font-bold text-white/90 text-[10px]">
+                          <kbd className="px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 font-bold text-white shadow-sm text-[10px]">
                             {key.trim()}
                           </kbd>
                           {i < item.defaultShortcut.split("+").length - 1 && <span className="opacity-40 text-[10px]">+</span>}
@@ -786,12 +783,12 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
                   </div>
 
                   <div className="shrink-0 text-right flex flex-col items-end">
-                    <span className="text-[9px] font-extrabold text-[#A67165] uppercase tracking-wider block mb-1">Custom Shortcut</span>
+                    <span className="text-[9px] font-extrabold text-[#C98D74] uppercase tracking-wider block mb-1.5">Custom Shortcut</span>
                     {isAssigned ? (
                       <div className="inline-flex items-center gap-1 font-mono text-[11px] flex-wrap justify-end">
                         {item.customShortcut.split("+").map((key, i) => (
                           <React.Fragment key={i}>
-                            <kbd className="px-2 py-0.5 rounded bg-[#A67165]/25 border border-[#A67165]/50 font-bold text-[#F2D8C2] text-[10px]">
+                            <kbd className="px-2.5 py-1 rounded-lg bg-[#A67165]/30 border border-[#A67165]/60 font-bold text-[#F2D8C2] shadow-sm text-[10px]">
                               {key.trim()}
                             </kbd>
                             {i < item.customShortcut.split("+").length - 1 && <span className="opacity-40 text-[10px]">+</span>}
@@ -816,9 +813,9 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
                           e.stopPropagation()
                           openRecordingPage(item)
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#A67165] to-[#734E46] hover:from-[#734E46] hover:to-[#A67165] text-white text-[11px] font-bold flex items-center gap-1 shadow-md border-none cursor-pointer transition-all shrink-0"
+                        className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#A67165] to-[#734E46] hover:from-[#734E46] hover:to-[#A67165] text-white text-[11px] font-bold flex items-center gap-1 shadow-md border border-white/10 cursor-pointer transition-all shrink-0"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-3.5 h-3.5" />
                         <span>Apply Here</span>
                       </button>
                     )}

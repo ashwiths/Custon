@@ -17,11 +17,23 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   setDarkMode,
   children,
 }) => {
+  const getFormattedTitle = (page: ActivePage) => {
+    switch (page) {
+      case "dashboard": return "Dashboard"
+      case "create-app-shortcut": return "Target Apps"
+      case "customize-keys": return "Customize Keys"
+      case "target-shortcuts": return "Active Shortcuts"
+      case "settings": return "Settings"
+      case "help": return "Help & Support"
+      default: return "Dashboard"
+    }
+  }
+
   return (
     <div className="app-root flex h-screen w-screen overflow-hidden relative" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 relative z-10">
-        <TopNavbar title={currentPage} darkMode={darkMode} setDarkMode={setDarkMode} />
+        <TopNavbar title={getFormattedTitle(currentPage)} darkMode={darkMode} setDarkMode={setDarkMode} />
         <main className={`flex-1 ${currentPage === "settings" ? "overflow-hidden p-5" : "overflow-y-auto p-8"}`}>
           <div
             className={`mx-auto animate-fade-up ${

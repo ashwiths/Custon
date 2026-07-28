@@ -60,10 +60,8 @@ export const CreateFullClose: React.FC<CreateFullCloseProps> = ({ onBack, onSave
       if (!isModifierOnly) {
         const conflict = checkShortcutConflict(comboStr)
         if (conflict.hasConflict) {
-          window.alert(`⚠️ KEY ALREADY USED!\n\nThe key combination "${comboStr}" is already assigned to ${conflict.conflictName}.\n\nYou cannot reuse or repeat this key combination! Please choose a different shortcut.`)
-          setKeyCombo("")
-          setErrorToast(`⚠️ Key "${comboStr}" already used by ${conflict.conflictName}!`)
-          setTimeout(() => setErrorToast(null), 3500)
+          setErrorToast(`⚠️ REPEATED KEY WARNING! "${comboStr}" is already assigned to ${conflict.conflictName}. Please do not use repeated keys!`)
+          setTimeout(() => setErrorToast(null), 4000)
         }
       }
     }
@@ -100,7 +98,7 @@ export const CreateFullClose: React.FC<CreateFullCloseProps> = ({ onBack, onSave
   }
 
   return (
-    <div className="space-y-8 animate-fade-up select-none pb-8 relative text-left">
+    <div className="max-w-[800px] mx-auto space-y-6 animate-fade-up select-none pb-12 relative text-left">
       {/* Toast Notification */}
       {errorToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#252326] text-[#F2D8C2] border border-amber-500/50 p-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-fade-up max-w-[420px]">
@@ -113,7 +111,7 @@ export const CreateFullClose: React.FC<CreateFullCloseProps> = ({ onBack, onSave
           </button>
         </div>
       )}
-      <div className="flex items-center gap-4 border-b border-white/10 pb-4">
+      <div className="flex items-center gap-4 border-b border-white/10 pb-5">
         <button 
           onClick={onBack}
           className="w-10 h-10 rounded-xl bg-white/20 dark:bg-white/5 border border-white/15 hover:bg-white/40 dark:hover:bg-white/10 flex items-center justify-center text-[#252326] dark:text-[#F2D8C2] cursor-pointer transition-all duration-200"
@@ -121,20 +119,22 @@ export const CreateFullClose: React.FC<CreateFullCloseProps> = ({ onBack, onSave
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-[26px] font-black text-[#252326] dark:text-[#F2D8C2] flex items-center gap-2">
+          <h1 className="text-[26px] font-black text-[#252326] dark:text-[#F2D8C2]">
             Customize Close All Windows Key
           </h1>
-          <p className="text-sm font-semibold text-[#6B5B54] dark:text-[#A69281]">
+          <p className="text-xs font-semibold text-[#6B5B54] dark:text-[#A69281] leading-relaxed mt-0.5">
             Assign your custom keyboard shortcut combination to terminate all open windows instantly.
           </p>
         </div>
       </div>
 
-      {/* Key Recorder Box */}
-      <div className="glass-card p-8 border-[rgba(255,255,255,0.28)]" style={{ borderRadius: "24px" }}>
-        <div className="space-y-4 max-w-[600px]">
+      {/* Main Centered Glass Card */}
+      <div className="glass-card p-8 border-[rgba(255,255,255,0.25)] space-y-6" style={{ borderRadius: "24px" }}>
+        
+        {/* Key Recorder Section */}
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-[#A67165] dark:text-[#C98D74] uppercase tracking-wider block flex items-center gap-2">
+            <label className="text-xs font-bold text-[#A67165] dark:text-[#C98D74] uppercase tracking-wider flex items-center gap-2">
               <Sliders className="w-4 h-4 text-[#A67165]" />
               <span>Customize Key Binding</span>
             </label>
@@ -155,51 +155,67 @@ export const CreateFullClose: React.FC<CreateFullCloseProps> = ({ onBack, onSave
               onBlur={() => setIsRecording(false)}
               readOnly
               placeholder={isRecording ? "Press your custom shortcut keys..." : "Type key combination (e.g. Ctrl + Alt + X)"}
-              className="w-full text-base px-5 py-4 pl-12 rounded-xl border border-[rgba(166,113,101,0.2)] dark:border-[#A67165]/40 bg-white/55 dark:bg-[#1E1B1A] outline-none text-[#252326] dark:text-[#F2D8C2] font-mono font-bold text-lg shadow-inner focus:ring-2 focus:ring-[#A67165]/50 transition-all"
+              className="w-full text-base px-5 py-4 pl-12 rounded-xl border border-[rgba(166,113,101,0.3)] dark:border-[#A67165]/50 bg-white/55 dark:bg-[#1E1B1A] outline-none text-[#252326] dark:text-[#F2D8C2] font-mono font-bold text-lg shadow-inner focus:ring-2 focus:ring-[#A67165]/50 transition-all text-left"
             />
             <Keyboard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#A67165]" />
           </div>
+        </div>
 
-          {/* Preset Quick Customization Buttons */}
-          <div className="pt-2">
-            <span className="text-[11px] font-bold text-[#6B5B54] dark:text-[#A69281] uppercase tracking-wider block mb-2">
+        {/* Quick Presets & System Info Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Quick Presets */}
+          <div className="p-4 rounded-2xl bg-black/20 border border-white/10 space-y-2 text-left">
+            <span className="text-[11px] font-bold text-[#6B5B54] dark:text-[#A69281] uppercase tracking-wider block">
               Quick Preset Keys
             </span>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 pt-1">
               {["Ctrl + Alt + X", "Ctrl + Shift + Q", "Alt + Shift + W", "Ctrl + Alt + End"].map((preset) => (
                 <button
                   key={preset}
                   type="button"
                   onClick={() => setKeyCombo(preset)}
-                  className="px-3 py-1.5 rounded-lg bg-white/10 dark:bg-white/5 hover:bg-[#A67165]/20 border border-white/10 text-xs font-mono font-bold text-[#252326] dark:text-[#F2D8C2] transition-colors cursor-pointer"
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold transition-all cursor-pointer ${
+                    keyCombo === preset
+                      ? "bg-[#A67165] border-[#A67165] text-white shadow-md"
+                      : "bg-white/10 dark:bg-white/5 hover:bg-[#A67165]/20 border-white/10 text-[#252326] dark:text-[#F2D8C2]"
+                  }`}
                 >
                   {preset}
                 </button>
               ))}
             </div>
           </div>
-          
-          <div className="p-4 rounded-xl bg-white/20 dark:bg-white/5 border border-white/15 flex items-center gap-3 mt-4">
-            <ShieldCheck className="h-5 w-5 text-[#A67165] flex-shrink-0" />
-            <p className="text-xs text-[#6B5B54] dark:text-[#A69281] font-semibold leading-relaxed">
-              Pressing this customized key combination anywhere on your PC will trigger instant window closing.
-            </p>
+
+          {/* Security & System Info */}
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3 text-left">
+            <ShieldCheck className="h-5 w-5 text-[#A67165] flex-shrink-0 mt-0.5" />
+            <div>
+              <span className="text-[11px] font-bold text-[#F2D8C2] uppercase block mb-1">Global Action Notice</span>
+              <p className="text-xs text-[#6B5B54] dark:text-[#A69281] font-semibold leading-relaxed">
+                Pressing this key combination anywhere on your PC will trigger instant window hiding or closing across all active desktop workspaces.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Actions */}
-      <div className="flex justify-end gap-3.5 border-t border-white/10 pt-6">
-        <button onClick={onBack} className="btn-secondary py-3 px-8 text-sm font-semibold rounded-xl cursor-pointer">
-          Cancel
-        </button>
-        <button 
-          onClick={handleSave}
-          className="btn-primary py-3 px-8 text-sm font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-lg hover:shadow-xl transition-all"
-        >
-          <Check className="h-4 w-4" />
-          <span>Save Customized Key</span>
-        </button>
+        {/* Card Footer Actions */}
+        <div className="flex items-center justify-end gap-3.5 border-t border-white/10 pt-5">
+          <button 
+            type="button"
+            onClick={onBack} 
+            className="px-6 py-2.5 rounded-xl text-xs font-bold text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button 
+            type="button"
+            onClick={handleSave}
+            className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#A67165] to-[#734E46] hover:from-[#734E46] hover:to-[#A67165] shadow-lg border-none cursor-pointer flex items-center gap-2 transition-all"
+          >
+            <Check className="h-4 w-4" />
+            <span>Save Customized Key</span>
+          </button>
+        </div>
       </div>
     </div>
   )

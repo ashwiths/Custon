@@ -7,7 +7,7 @@ interface TopNavbarProps {
   setDarkMode?: (dark: boolean) => void
 }
 
-export const TopNavbar: React.FC<TopNavbarProps> = ({ title }) => {
+const LiveClock: React.FC = React.memo(() => {
   const [time, setTime] = React.useState(new Date())
 
   React.useEffect(() => {
@@ -21,16 +21,27 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ title }) => {
     hour12: true,
   })
 
-  const dateString = time.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  })
+  return (
+    <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#9B8179] dark:text-[#A69281] bg-[rgba(166,113,101,0.08)] dark:bg-[rgba(166,113,101,0.15)] px-3 py-1.5 rounded-xl border border-[rgba(166,113,101,0.12)]">
+      <Clock className="w-3.5 h-3.5 opacity-85 text-[#A67165]" />
+      <span>{timeString}</span>
+    </div>
+  )
+})
+
+export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({ title }) => {
+  const dateString = React.useMemo(() => {
+    return new Date().toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    })
+  }, [])
 
   return (
     <header
-      className="flex items-center justify-between flex-shrink-0 px-8 bg-white/20 dark:bg-[#252326]/20 backdrop-blur-[24px] border-b border-white/15 dark:border-white/5"
-      style={{ height: "72px" }}
+      className="flex items-center justify-between flex-shrink-0 px-8 bg-white/20 dark:bg-[#252326]/20 backdrop-blur-md border-b border-white/15 dark:border-white/5"
+      style={{ height: "72px", transform: "translateZ(0)" }}
     >
       {/* Left side: Title & Secure Status */}
       <div className="flex items-center gap-4">
@@ -52,11 +63,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ title }) => {
         </div>
 
         {/* Clock pill */}
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#9B8179] dark:text-[#A69281] bg-[rgba(166,113,101,0.08)] dark:bg-[rgba(166,113,101,0.15)] px-3 py-1.5 rounded-xl border border-[rgba(166,113,101,0.12)]">
-          <Clock className="w-3.5 h-3.5 opacity-85 text-[#A67165]" />
-          <span>{timeString}</span>
-        </div>
+        <LiveClock />
       </div>
     </header>
   )
-}
+})

@@ -14,6 +14,7 @@ import {
 import { CreateAppShortcut } from "@/pages/CreateAppShortcut"
 import { CreateFullClose } from "@/pages/CreateFullClose"
 import { ShortcutItem } from "@/pages/Dashboard"
+import { DEFAULT_KEY_SHORTCUTS, KeyShortcutItem } from "@/types/allKeysShortcuts"
 
 // Handcrafted SVG Icons for Application Logos
 const ChromeIcon: React.FC = () => (
@@ -110,20 +111,26 @@ export const TargetShortcuts: React.FC = () => {
     return DEFAULT_SHORTCUTS
   })
 
-  // Read active customized system keys from localStorage
-  const activeCustomSystemKeys = React.useMemo(() => {
+  // Read active system & all-key shortcuts from localStorage
+  const activeGeneralSystemKeys = React.useMemo(() => {
     try {
-      const saved = localStorage.getItem("custon_all_key_shortcuts")
+      const saved = localStorage.getItem("custom_all_key_shortcuts")
+      let items: KeyShortcutItem[] = DEFAULT_KEY_SHORTCUTS
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed)) {
-          return parsed.filter(s => s.status && s.customShortcut && s.customShortcut.trim().length > 0)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          items = DEFAULT_KEY_SHORTCUTS.map(def => {
+            const match = parsed.find((p: any) => p.action === def.action || p.id === def.id)
+            return match
+              ? { ...def, customShortcut: match.customShortcut || "", status: match.status !== undefined ? match.status : true }
+              : def
+          })
         }
       }
+      return items.filter(s => s.status !== false)
     } catch {
-      // Ignore
+      return DEFAULT_KEY_SHORTCUTS.filter(s => s.status !== false)
     }
-    return []
   }, [])
 
   // Save shortcuts to localStorage and update Win32 backend
@@ -266,6 +273,18 @@ export const TargetShortcuts: React.FC = () => {
     const q = searchQuery.toLowerCase().trim()
     if (!q) return true
     return s.name.toLowerCase().includes(q) || s.keys.join(" ").toLowerCase().includes(q)
+  })
+
+  const filteredSystemKeys = activeGeneralSystemKeys.filter(s => {
+    const q = searchQuery.toLowerCase().trim()
+    if (!q) return true
+    const activeCombo = s.customShortcut.trim() || s.defaultShortcut
+    return (
+      s.action.toLowerCase().includes(q) ||
+      s.category.toLowerCase().includes(q) ||
+      activeCombo.toLowerCase().includes(q) ||
+      s.defaultShortcut.toLowerCase().includes(q)
+    )
   })
 
   // SUB-VIEW 1: CREATE APP SHORTCUT
@@ -505,32 +524,48 @@ export const TargetShortcuts: React.FC = () => {
         )}
       </div>
 
-      {/* ACTIVE CUSTOMIZED WINDOWS HOTKEYS SECTION */}
-      {activeCustomSystemKeys.length > 0 && (
+      {/* ACTIVE SYSTEM & GENERAL KEYS SECTION */}
+      {filteredSystemKeys.length > 0 && (
         <div className="glass-card p-6 border-[rgba(255,255,255,0.28)] text-left" style={{ borderRadius: "24px" }}>
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
               <h3 className="text-[18px] font-bold text-[#252326] dark:text-[#F2D8C2]">
-                Active Customized Windows Hotkeys
+                Active System & General Keys
               </h3>
               <span className="px-2.5 py-0.5 rounded-full bg-[rgba(166,113,101,0.12)] text-[#A67165] text-[11px] font-bold">
-                {activeCustomSystemKeys.length} Active
+                {filteredSystemKeys.length} Active
               </span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activeCustomSystemKeys.map((item) => (
-              <div key={item.id} className="p-4 rounded-2xl bg-white/5 border border-white/12 flex items-center justify-between gap-3 text-left">
-                <div>
-                  <h5 className="text-sm font-bold text-white">{item.action}</h5>
-                  <span className="text-[10px] font-semibold text-[#A69281] uppercase block mt-0.5">{item.category}</span>
+            {filteredSystemKeys.map((item) => {
+              const displayCombo = item.customShortcut.trim() ? item.customShortcut : item.defaultShortcut
+              const isCustom = Boolean(item.customShortcut.trim())
+
+              return (
+                <div key={item.id} className="p-4 rounded-2xl bg-white/5 hover:bg-white/[0.08] border border-white/12 flex items-center justify-between gap-3 text-left transition-all">
+                  <div className="min-w-0 flex-1">
+                    <h5 className="text-sm font-bold text-white truncate" title={item.action}>{item.action}</h5>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-semibold text-[#A69281] uppercase block">{item.category}</span>
+                      {isCustom ? (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#A67165]/30 text-[#F2D8C2] border border-[#A67165]/40">
+                          Custom Override
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-white/10 text-white/60">
+                          System Default
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <kbd className="px-3 py-1.5 rounded-xl bg-black/60 border border-white/20 font-mono text-xs font-bold text-[#F2D8C2] shrink-0 shadow-inner">
+                    {displayCombo}
+                  </kbd>
                 </div>
-                <kbd className="px-2.5 py-1 rounded-xl bg-[#A67165]/20 border border-[#A67165]/40 font-mono text-xs font-bold text-[#F2D8C2] shrink-0">
-                  {item.customShortcut}
-                </kbd>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

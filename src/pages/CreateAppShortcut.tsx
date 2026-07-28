@@ -101,7 +101,7 @@ interface CreateAppShortcutProps {
 
 export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, onSave, initialShortcut }) => {
   const [errorToast, setErrorToast] = React.useState<string | null>(null)
-  const [shortcutName, setShortcutName] = React.useState(initialShortcut?.name || "")
+  const shortcutName = initialShortcut?.name || ""
   const [selectedApps, setSelectedApps] = React.useState<string[]>(initialShortcut?.apps || [])
   const [keyCombo, setKeyCombo] = React.useState(initialShortcut?.keys ? initialShortcut.keys.join(" + ") : "")
   const [executionMode, setExecutionMode] = React.useState<"stealth" | "close">(() => {
@@ -243,10 +243,8 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
       if (!isModifierOnly) {
         const conflict = checkShortcutConflict(comboStr)
         if (conflict.hasConflict) {
-          window.alert(`⚠️ KEY ALREADY USED!\n\nThe key combination "${comboStr}" is already assigned to ${conflict.conflictName}.\n\nYou cannot reuse or repeat this key combination! Please choose a different shortcut.`)
-          setKeyCombo("")
-          setErrorToast(`⚠️ Key "${comboStr}" already used by ${conflict.conflictName}!`)
-          setTimeout(() => setErrorToast(null), 3500)
+          setErrorToast(`⚠️ REPEATED KEY WARNING! "${comboStr}" is already assigned to ${conflict.conflictName}. Please do not use repeated keys!`)
+          setTimeout(() => setErrorToast(null), 4000)
         }
       }
     }
@@ -350,21 +348,7 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
         </div>
       </div>
 
-      {/* Shortcut Name */}
-      <div className="glass-card p-8 border-[rgba(255,255,255,0.28)]" style={{ borderRadius: "24px" }}>
-        <div className="space-y-2 max-w-[600px]">
-          <label className="text-xs font-bold text-[#A67165] dark:text-[#C98D74] uppercase tracking-wider block">
-            Shortcut Name (Optional)
-          </label>
-          <input 
-            type="text"
-            value={shortcutName}
-            onChange={(e) => setShortcutName(e.target.value)}
-            placeholder="e.g. Exam AI Clean, Study Stealth, Custom App Close"
-            className="w-full text-base px-5 py-3.5 rounded-xl border border-[rgba(166,113,101,0.2)] dark:border-[#A67165]/40 bg-white/55 dark:bg-[#1E1B1A] backdrop-blur-md outline-none text-[#252326] dark:text-[#F2D8C2] placeholder:text-[#9B8179]/50 focus:border-[#A67165] font-semibold"
-          />
-        </div>
-      </div>
+
 
       {/* Target Application Selection */}
       <div className="glass-card p-8 border-[rgba(255,255,255,0.28)]" style={{ borderRadius: "24px" }}>

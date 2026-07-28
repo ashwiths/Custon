@@ -2,6 +2,8 @@ import { useState, useEffect } from "react"
 import { MainLayout } from "@/layouts/MainLayout"
 import { Dashboard } from "@/pages/Dashboard"
 import { TargetShortcuts } from "@/pages/TargetShortcuts"
+import { CreateAppShortcut } from "@/pages/CreateAppShortcut"
+import { CustomizeAllKeys } from "@/pages/CustomizeAllKeys"
 import { Settings } from "@/pages/Settings"
 import { HelpPage } from "@/pages/Help"
 import { type ActivePage } from "@/components/Sidebar"
@@ -59,6 +61,35 @@ function App() {
     switch (currentPage) {
       case "dashboard":
         return <Dashboard />
+      case "create-app-shortcut":
+        return (
+          <CreateAppShortcut
+            onBack={() => setCurrentPage("dashboard")}
+            onSave={(shortcutName, selectedApps, keys, mode) => {
+              try {
+                const saved = localStorage.getItem("custom_workspace_shortcuts")
+                const existing = saved ? JSON.parse(saved) : []
+                const newShortcut = {
+                  id: Date.now().toString(),
+                  name: shortcutName.trim() || selectedApps.join(" • "),
+                  apps: selectedApps,
+                  keys,
+                  status: "Enabled",
+                  lastUsed: "Just now",
+                  executionMode: mode || "stealth"
+                }
+                const updated = [newShortcut, ...existing]
+                localStorage.setItem("custom_workspace_shortcuts", JSON.stringify(updated))
+                import("@tauri-apps/api/core").then(({ invoke }) => {
+                  invoke("sync_shortcuts", { shortcuts: updated }).catch(() => {})
+                })
+              } catch {}
+              setCurrentPage("target-shortcuts")
+            }}
+          />
+        )
+      case "customize-keys":
+        return <CustomizeAllKeys onBack={() => setCurrentPage("dashboard")} />
       case "target-shortcuts":
         return <TargetShortcuts />
       case "settings":
