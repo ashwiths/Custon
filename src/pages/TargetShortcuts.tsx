@@ -139,7 +139,7 @@ export const TargetShortcuts: React.FC = () => {
   const syncWithBackend = async (items: ShortcutItem[]) => {
     try {
       const { invoke } = await import("@tauri-apps/api/core")
-      await invoke("sync_target_shortcuts", { shortcutsJson: JSON.stringify(items) })
+      await invoke("sync_shortcuts", { shortcuts: items })
     } catch {
       // Non-tauri browser environment
     }
@@ -149,13 +149,17 @@ export const TargetShortcuts: React.FC = () => {
   const triggerShortcutExecution = async (item: ShortcutItem) => {
     try {
       const { invoke } = await import("@tauri-apps/api/core")
-      if (item.isFullClose) {
-        await invoke("hide_workspace_windows")
-        setActionToast("✓ Master Close Triggered: All open windows hidden!")
+      if (item.isFullClose || item.apps.includes("all-apps")) {
+        const result = await invoke<{ state: string; count: number }>("toggle_workspace")
+        if (result.state === "hidden") {
+          setActionToast("✓ All open windows hidden!")
+        } else {
+          setActionToast("✓ All open windows restored!")
+        }
       } else {
-        const result = await invoke<{ state: string; count: number }>("execute_shortcut_action", {
+        const result = await invoke<{ state: string; count: number }>("toggle_target_shortcut", {
           shortcutId: item.id,
-          apps: item.apps,
+          targetApps: item.apps,
           mode: item.executionMode || "stealth"
         })
         if (item.executionMode === "close") {
@@ -163,7 +167,7 @@ export const TargetShortcuts: React.FC = () => {
         } else if (result.state === "hidden") {
           setActionToast(`✓ Hidden target app windows (${item.name})`)
         } else {
-          setActionToast(`✓ Restored target app windows (${item.name})`)
+          setActionToast(`✓ Switched & activated target app windows (${item.name})`)
         }
       }
       setTimeout(() => setActionToast(null), 2500)

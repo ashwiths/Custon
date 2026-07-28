@@ -1,9 +1,11 @@
 use std::mem;
+use std::collections::HashMap;
 use windows_sys::Win32::Foundation::{CloseHandle, BOOL, HWND, LPARAM, RECT};
 use windows_sys::Win32::Graphics::Gdi::{MonitorFromWindow, MONITOR_DEFAULTTONEAREST};
 use windows_sys::Win32::System::Threading::{
-    OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ,
+    AttachThreadInput, GetCurrentThreadId, OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ,
 };
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::SetFocus;
 use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
 use crate::common::models::{RunningAppInfo, ToggleState, WindowSnapshot, WorkspaceState};
@@ -80,6 +82,26 @@ pub fn matches_target_apps(exe_name: &str, title: &str, target_apps: &[String]) 
                     return true;
                 }
             }
+            "terminal" | "console" => {
+                if exe_lower.contains("wt") || exe_lower.contains("cmd") || exe_lower.contains("powershell") {
+                    return true;
+                }
+            }
+            "notepad" => {
+                if exe_lower.contains("notepad") {
+                    return true;
+                }
+            }
+            "firefox" => {
+                if exe_lower.contains("firefox") {
+                    return true;
+                }
+            }
+            "brave" => {
+                if exe_lower.contains("brave") {
+                    return true;
+                }
+            }
             custom => {
                 let clean_custom = custom.replace('-', " ");
                 if (!exe_lower.is_empty()
@@ -98,6 +120,7 @@ pub fn matches_target_apps(exe_name: &str, title: &str, target_apps: &[String]) 
 
 struct EnumContext {
     snapshots: Vec<WindowSnapshot>,
+    process_cache: HashMap<u32, String>,
 }
 
 unsafe extern "system" fn enum_windows_callback(hwnd: HWND, lparam: LPARAM) -> BOOL {
@@ -108,18 +131,7 @@ unsafe extern "system" fn enum_windows_callback(hwnd: HWND, lparam: LPARAM) -> B
         return 1;
     }
 
-    // 2. Ignore zero-size or offscreen utility windows
-    let mut rect: RECT = mem::zeroed();
-    if GetWindowRect(hwnd, &mut rect) == 0 {
-        return 1;
-    }
-    let width = rect.right - rect.left;
-    let height = rect.bottom - rect.top;
-    if width <= 10 || height <= 10 {
-        return 1;
-    }
-
-    // 3. Class Name Filtering (Desktop, Taskbar, System UI)
+    // 2. Class Name Filtering (Desktop, Taskbar, System UI, IMEs)
     let mut class_buf = [0u16; 256];
     let class_len = GetClassNameW(hwnd, class_buf.as_mut_ptr(), 256);
     let class_name = String::from_utf16_lossy(&class_buf[..class_len as usize]);
@@ -131,13 +143,27 @@ unsafe extern "system" fn enum_windows_callback(hwnd: HWND, lparam: LPARAM) -> B
         || class_name == "Windows.UI.Core.CoreWindow"
         || class_name == "MultitaskingViewFrame"
         || class_name == "SideBar_HiddenWindow"
+        || class_name == "IME"
+        || class_name == "MSCTFIME UI"
+        || class_name == "TaskListThumbnailWnd"
     {
         return 1;
     }
 
-    // 4. Extended style filtering (Tool windows vs App windows)
+    // 3. Extended style filtering (Tool windows vs App windows)
     let ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE) as u32;
     if (ex_style & WS_EX_TOOLWINDOW != 0) && (ex_style & WS_EX_APPWINDOW == 0) {
+        return 1;
+    }
+
+    // 4. Ignore zero-size or offscreen utility windows
+    let mut rect: RECT = mem::zeroed();
+    if GetWindowRect(hwnd, &mut rect) == 0 {
+        return 1;
+    }
+    let width = rect.right - rect.left;
+    let height = rect.bottom - rect.top;
+    if width <= 10 || height <= 10 {
         return 1;
     }
 
@@ -176,12 +202,53 @@ unsafe extern "system" fn enum_windows_callback(hwnd: HWND, lparam: LPARAM) -> B
     1
 }
 
+pub unsafe fn focus_and_activate_window(hwnd: HWND, placement: &WINDOWPLACEMENT, was_maximized: bool) {
+    if IsWindow(hwnd) == 0 {
+        return;
+    }
+
+    if IsIconic(hwnd) != 0 || placement.showCmd == SW_SHOWMINIMIZED as u32 {
+        if was_maximized {
+            ShowWindowAsync(hwnd, SW_SHOWMAXIMIZED as i32);
+        } else {
+            ShowWindowAsync(hwnd, SW_RESTORE as i32);
+        }
+    } else if placement.showCmd == SW_SHOWMAXIMIZED as u32 {
+        ShowWindowAsync(hwnd, SW_SHOWMAXIMIZED as i32);
+    } else {
+        ShowWindowAsync(hwnd, SW_SHOW as i32);
+    }
+
+    let fg_hwnd = GetForegroundWindow();
+    if fg_hwnd != 0 && fg_hwnd != hwnd {
+        let fg_thread_id = GetWindowThreadProcessId(fg_hwnd, std::ptr::null_mut());
+        let cur_thread_id = GetCurrentThreadId();
+        
+        if fg_thread_id != cur_thread_id && fg_thread_id != 0 {
+            AttachThreadInput(cur_thread_id, fg_thread_id, 1);
+            BringWindowToTop(hwnd);
+            SetForegroundWindow(hwnd);
+            SetFocus(hwnd);
+            AttachThreadInput(cur_thread_id, fg_thread_id, 0);
+        } else {
+            BringWindowToTop(hwnd);
+            SetForegroundWindow(hwnd);
+            SetFocus(hwnd);
+        }
+    } else {
+        BringWindowToTop(hwnd);
+        SetForegroundWindow(hwnd);
+        SetFocus(hwnd);
+    }
+}
+
 pub struct WindowsWindowManager;
 
 impl PlatformWindowManager for WindowsWindowManager {
     fn get_running_applications() -> Vec<RunningAppInfo> {
         let mut context = EnumContext {
             snapshots: Vec::new(),
+            process_cache: HashMap::new(),
         };
 
         unsafe {
@@ -195,7 +262,8 @@ impl PlatformWindowManager for WindowsWindowManager {
         let mut running_apps = Vec::new();
 
         for snapshot in context.snapshots {
-            let exe_name = get_process_exe_name(snapshot.process_id);
+            let pid = snapshot.process_id;
+            let exe_name = context.process_cache.entry(pid).or_insert_with(|| get_process_exe_name(pid));
             if exe_name.is_empty() {
                 continue;
             }
@@ -300,21 +368,81 @@ impl PlatformWindowManager for WindowsWindowManager {
             return (current, 0);
         }
 
-        let current_state = state.get_shortcut_state(shortcut_id);
         let result = if mode == "close" {
             let count = Self::close_target_apps(target_apps);
             (ToggleState::Visible, count)
         } else {
-            match current_state {
-                ToggleState::Visible => {
-                    let count = Self::hide_target_apps(state, shortcut_id, target_apps);
+            let mut shortcut_windows = state.shortcut_windows.lock().unwrap();
+            if let Some(saved_snapshots) = shortcut_windows.remove(shortcut_id) {
+                // Apps were hidden by Custon -> Restore & Focus them!
+                let count = saved_snapshots.len();
+                for snapshot in saved_snapshots.iter().rev() {
+                    unsafe {
+                        SetWindowPlacement(snapshot.hwnd, &snapshot.placement);
+                        SetWindowPos(
+                            snapshot.hwnd,
+                            HWND_TOP,
+                            snapshot.rect.left,
+                            snapshot.rect.top,
+                            snapshot.rect.right - snapshot.rect.left,
+                            snapshot.rect.bottom - snapshot.rect.top,
+                            SWP_SHOWWINDOW,
+                        );
+                        focus_and_activate_window(snapshot.hwnd, &snapshot.placement, snapshot.was_maximized);
+                    }
+                }
+                state.set_shortcut_state(shortcut_id, ToggleState::Visible);
+                (ToggleState::Visible, count)
+            } else {
+                // Scan running applications
+                let mut context = EnumContext {
+                    snapshots: Vec::new(),
+                    process_cache: HashMap::new(),
+                };
+                unsafe {
+                    EnumWindows(
+                        Some(enum_windows_callback),
+                        &mut context as *mut EnumContext as LPARAM,
+                    );
+                }
+
+                let target_snapshots: Vec<WindowSnapshot> = context
+                    .snapshots
+                    .into_iter()
+                    .filter(|snapshot| {
+                        let pid = snapshot.process_id;
+                        let exe_name = context.process_cache.entry(pid).or_insert_with(|| get_process_exe_name(pid));
+                        matches_target_apps(exe_name, &snapshot.title, target_apps)
+                    })
+                    .collect();
+
+                let count = target_snapshots.len();
+                let fg_hwnd = unsafe { GetForegroundWindow() };
+
+                let is_any_target_active = target_snapshots.iter().any(|s| s.hwnd == fg_hwnd);
+
+                if is_any_target_active {
+                    // If target app is currently active foreground window, hide/minimize it
+                    for snapshot in &target_snapshots {
+                        unsafe {
+                            ShowWindowAsync(snapshot.hwnd, SW_HIDE as i32);
+                        }
+                    }
+                    shortcut_windows.insert(shortcut_id.to_string(), target_snapshots);
                     state.set_shortcut_state(shortcut_id, ToggleState::Hidden);
                     (ToggleState::Hidden, count)
-                }
-                ToggleState::Hidden => {
-                    let count = Self::restore_target_apps(state, shortcut_id);
+                } else if count > 0 {
+                    // If target app is running but NOT active, bring to front & focus immediately!
+                    for snapshot in target_snapshots.iter().rev() {
+                        unsafe {
+                            focus_and_activate_window(snapshot.hwnd, &snapshot.placement, snapshot.was_maximized);
+                        }
+                    }
                     state.set_shortcut_state(shortcut_id, ToggleState::Visible);
                     (ToggleState::Visible, count)
+                } else {
+                    state.set_shortcut_state(shortcut_id, ToggleState::Visible);
+                    (ToggleState::Visible, 0)
                 }
             }
         };
@@ -326,10 +454,8 @@ impl PlatformWindowManager for WindowsWindowManager {
     fn restore_all_hidden(state: &WorkspaceState) -> usize {
         let mut count = 0;
         
-        // 1. Restore general workspace windows
         count += Self::restore_all(state);
 
-        // 2. Restore shortcut-specific windows
         let mut shortcut_windows = state.shortcut_windows.lock().unwrap();
         let mut shortcut_states = state.shortcut_states.lock().unwrap();
         
@@ -352,16 +478,10 @@ impl PlatformWindowManager for WindowsWindowManager {
                             snapshot.rect.top,
                             snapshot.rect.right - snapshot.rect.left,
                             snapshot.rect.bottom - snapshot.rect.top,
-                            SWP_NOACTIVATE | SWP_SHOWWINDOW,
+                            SWP_SHOWWINDOW,
                         );
 
-                        if snapshot.was_maximized {
-                            ShowWindowAsync(snapshot.hwnd, SW_SHOWMAXIMIZED as i32);
-                        } else if snapshot.was_minimized {
-                            ShowWindowAsync(snapshot.hwnd, SW_SHOWMINIMIZED as i32);
-                        } else {
-                            ShowWindowAsync(snapshot.hwnd, SW_SHOW as i32);
-                        }
+                        focus_and_activate_window(snapshot.hwnd, &snapshot.placement, snapshot.was_maximized);
                     }
                 }
             }
@@ -374,6 +494,7 @@ impl PlatformWindowManager for WindowsWindowManager {
     fn close_target_apps(target_apps: &[String]) -> usize {
         let mut context = EnumContext {
             snapshots: Vec::new(),
+            process_cache: HashMap::new(),
         };
 
         unsafe {
@@ -387,8 +508,9 @@ impl PlatformWindowManager for WindowsWindowManager {
             .snapshots
             .into_iter()
             .filter(|snapshot| {
-                let exe_name = get_process_exe_name(snapshot.process_id);
-                matches_target_apps(&exe_name, &snapshot.title, target_apps)
+                let pid = snapshot.process_id;
+                let exe_name = context.process_cache.entry(pid).or_insert_with(|| get_process_exe_name(pid));
+                matches_target_apps(exe_name, &snapshot.title, target_apps)
             })
             .collect();
 
@@ -410,6 +532,7 @@ impl WindowsWindowManager {
     fn hide_all(state: &WorkspaceState) -> usize {
         let mut context = EnumContext {
             snapshots: Vec::new(),
+            process_cache: HashMap::new(),
         };
 
         unsafe {
@@ -452,16 +575,10 @@ impl WindowsWindowManager {
                     snapshot.rect.top,
                     snapshot.rect.right - snapshot.rect.left,
                     snapshot.rect.bottom - snapshot.rect.top,
-                    SWP_NOACTIVATE | SWP_SHOWWINDOW,
+                    SWP_SHOWWINDOW,
                 );
 
-                if snapshot.was_maximized {
-                    ShowWindowAsync(snapshot.hwnd, SW_SHOWMAXIMIZED as i32);
-                } else if snapshot.was_minimized {
-                    ShowWindowAsync(snapshot.hwnd, SW_SHOWMINIMIZED as i32);
-                } else {
-                    ShowWindowAsync(snapshot.hwnd, SW_SHOW as i32);
-                }
+                focus_and_activate_window(snapshot.hwnd, &snapshot.placement, snapshot.was_maximized);
             }
         }
 
@@ -476,6 +593,7 @@ impl WindowsWindowManager {
     ) -> usize {
         let mut context = EnumContext {
             snapshots: Vec::new(),
+            process_cache: HashMap::new(),
         };
 
         unsafe {
@@ -489,8 +607,9 @@ impl WindowsWindowManager {
             .snapshots
             .into_iter()
             .filter(|snapshot| {
-                let exe_name = get_process_exe_name(snapshot.process_id);
-                matches_target_apps(&exe_name, &snapshot.title, target_apps)
+                let pid = snapshot.process_id;
+                let exe_name = context.process_cache.entry(pid).or_insert_with(|| get_process_exe_name(pid));
+                matches_target_apps(exe_name, &snapshot.title, target_apps)
             })
             .collect();
 
@@ -532,19 +651,14 @@ impl WindowsWindowManager {
                     snapshot.rect.top,
                     snapshot.rect.right - snapshot.rect.left,
                     snapshot.rect.bottom - snapshot.rect.top,
-                    SWP_NOACTIVATE | SWP_SHOWWINDOW,
+                    SWP_SHOWWINDOW,
                 );
 
-                if snapshot.was_maximized {
-                    ShowWindowAsync(snapshot.hwnd, SW_SHOWMAXIMIZED as i32);
-                } else if snapshot.was_minimized {
-                    ShowWindowAsync(snapshot.hwnd, SW_SHOWMINIMIZED as i32);
-                } else {
-                    ShowWindowAsync(snapshot.hwnd, SW_SHOW as i32);
-                }
+                focus_and_activate_window(snapshot.hwnd, &snapshot.placement, snapshot.was_maximized);
             }
         }
 
         count
     }
 }
+

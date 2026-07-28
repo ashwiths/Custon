@@ -21,7 +21,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
   useEffect(() => {
     const startTime = performance.now()
-    const duration = 2000 // Crisp 2.0s launch experience
+    const duration = 200 // Ultra-fast 200ms launch experience
 
     let animationFrameId: number
 
@@ -52,13 +52,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         setDisplayProgress(100)
         setStatusText("SYSTEM READY")
         
-        // Brief hold at 100% then trigger hardware curtain exit
+        // Instant curtain exit
         setTimeout(() => {
           setIsExiting(true)
           setTimeout(() => {
             onComplete()
-          }, 350) // 350ms smooth fade exit
-        }, 180)
+          }, 150) // 150ms smooth fade exit
+        }, 50)
       }
     }
 
