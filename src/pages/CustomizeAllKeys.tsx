@@ -5,11 +5,10 @@ import {
   Search, 
   Plus, 
   Sliders, 
-  LayoutGrid, 
   Command, 
-  Folder, 
-  Monitor, 
-  Zap, 
+  Monitor,
+  Folder,
+  LayoutGrid,
   ShieldAlert,
   Trash2,
   AlertTriangle,
@@ -31,6 +30,7 @@ import {
   DEFAULT_KEY_SHORTCUTS, 
   COMMON_CONFLICT_SHORTCUTS 
 } from "@/types/allKeysShortcuts"
+import { checkShortcutConflict } from "@/utils/shortcutConflict"
 
 interface CustomizeAllKeysProps {
   onBack: () => void
@@ -41,12 +41,7 @@ const SUPPRESS_WARNING_KEY = "suppress_shortcut_conflict_warning"
 
 const CATEGORIES: { id: ShortcutCategory; label: string; icon: React.FC<{ className?: string }> }[] = [
   { id: "All Shortcuts", label: "All Shortcuts", icon: Sliders },
-  { id: "Windows Keys", label: "Windows Keys", icon: LayoutGrid },
-  { id: "General Shortcuts", label: "General", icon: Command },
-  { id: "File Explorer", label: "File Explorer", icon: Folder },
-  { id: "Virtual Desktop", label: "Virtual Desktop", icon: Monitor },
-  { id: "Custom Actions", label: "Custom Actions", icon: Zap },
-  { id: "Advanced", label: "Advanced", icon: ShieldAlert },
+  { id: "General Shortcuts", label: "General Keys", icon: Command },
 ]
 
 export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) => {
@@ -56,17 +51,9 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
       if (saved) {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // If saved items match default list structure without user customizations, return clean defaults
-          return parsed.map((s: KeyShortcutItem) => {
-            // Force reset any old default assigned keys like Ctrl + Q, Shift + Q, Ctrl + Alt + E, etc.
-            const defaultObj = DEFAULT_KEY_SHORTCUTS.find(d => d.id === s.id)
-            if (defaultObj && defaultObj.customShortcut === "") {
-              // If it's a built-in shortcut and wasn't explicitly saved as custom by user in new system, strip it
-              if (["Ctrl + Q", "Shift + Q", "Ctrl + Alt + E", "Ctrl + Alt + S", "Alt + R", "Ctrl + Space", "Ctrl + Tab", "Ctrl + Alt + A", "Ctrl + Alt + P", "Ctrl + Shift + L", "Ctrl + Alt + F4", "Ctrl + Shift + S", "Ctrl + Alt + C", "Ctrl + Alt + X", "Ctrl + Alt + V", "Ctrl + Alt + Z", "Ctrl + Y", "Ctrl + Alt + Y", "Alt + Shift + Tab", "Ctrl + Alt + T", "Alt + Shift + S", "Ctrl + Alt + N", "Ctrl + Alt + W"].includes(s.customShortcut.trim())) {
-                return { ...s, customShortcut: "" }
-              }
-            }
-            return s
+          return DEFAULT_KEY_SHORTCUTS.map(def => {
+            const match = parsed.find((p: KeyShortcutItem) => p.action === def.action || p.id === def.id)
+            return match ? { ...def, customShortcut: match.customShortcut || "", status: match.status !== undefined ? match.status : true } : def
           })
         }
       }
@@ -90,7 +77,7 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
   // Add New Custom Shortcut state
   const [isAddingNew, setIsAddingNew] = React.useState(false)
   const [newActionName, setNewActionName] = React.useState("")
-  const [newCategory, setNewCategory] = React.useState<Exclude<ShortcutCategory, "All Shortcuts">>("Windows Keys")
+  const [newCategory, setNewCategory] = React.useState<Exclude<ShortcutCategory, "All Shortcuts">>("General Shortcuts")
   const [newDefaultKey, setNewDefaultKey] = React.useState("")
 
   const syncWithBackend = async (items: KeyShortcutItem[]) => {
@@ -178,8 +165,28 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
   const handleApplyCustomKey = (bypassConflict = false) => {
     if (!customizingShortcut) return
 
-    if (!recordedKeys.trim()) {
-      showToast("Please press a key combination to assign!")
+    const trimmed = recordedKeys.trim()
+    if (!trimmed) {
+      showToast("⚠️ Please press a key combination to assign!")
+      return
+    }
+
+    // Check if recordedKeys is incomplete (modifier-only without a main key)
+    const parts = trimmed.split(" + ").map(p => p.trim())
+    const lastPart = parts[parts.length - 1]
+    const isModifierOnly = ["Ctrl", "Alt", "Shift", "Win", "Control", "Meta"].includes(lastPart)
+
+    if (isModifierOnly) {
+      showToast("⚠️ Incomplete hotkey! Please include a main key (e.g. Ctrl + Shift + C)")
+      return
+    }
+
+    // Check if hotkey is already in use by another shortcut
+    const conflictResult = checkShortcutConflict(trimmed, customizingShortcut.id)
+    if (conflictResult.hasConflict) {
+      const alertMsg = `⚠️ KEY COMBINATION ALREADY USED!\n\nThe key combination "${trimmed}" is already assigned to ${conflictResult.conflictName}.\n\nPlease do not repeat shortcut keys! Choose a different key combination.`
+      window.alert(alertMsg)
+      showToast(`⚠️ Hotkey Already Used! "${trimmed}" is assigned to ${conflictResult.conflictName}. Please do not repeat keys!`)
       return
     }
 

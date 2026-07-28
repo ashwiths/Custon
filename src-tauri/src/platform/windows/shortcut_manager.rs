@@ -193,17 +193,8 @@ impl WindowsShortcutManager {
             "redo" => {
                 Self::send_key_combo(&[VK_CONTROL], VK_Y);
             }
-            "switch_apps" => {
-                Self::send_key_combo(&[VK_MENU], VK_TAB);
-            }
-            "open_task_view" => {
-                Self::send_key_combo(&[VK_LWIN], VK_TAB);
-            }
-            "new_virtual_desktop" => {
-                Self::send_key_combo(&[VK_LWIN, VK_CONTROL], VK_D);
-            }
-            "close_virtual_desktop" => {
-                Self::send_key_combo(&[VK_LWIN, VK_CONTROL], VK_F4);
+            "refresh" => {
+                Self::send_key_combo(&[], VK_F5);
             }
             _ => {}
         }

@@ -86,6 +86,8 @@ interface RunningAppItem {
   isRunning?: boolean
 }
 
+import { checkShortcutConflict } from "@/utils/shortcutConflict"
+
 interface CreateAppShortcutProps {
   onBack: () => void
   onSave: (shortcutName: string, selectedApps: string[], keys: string[], mode?: string) => void
@@ -98,6 +100,7 @@ interface CreateAppShortcutProps {
 }
 
 export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, onSave, initialShortcut }) => {
+  const [errorToast, setErrorToast] = React.useState<string | null>(null)
   const [shortcutName, setShortcutName] = React.useState(initialShortcut?.name || "")
   const [selectedApps, setSelectedApps] = React.useState<string[]>(initialShortcut?.apps || [])
   const [keyCombo, setKeyCombo] = React.useState(initialShortcut?.keys ? initialShortcut.keys.join(" + ") : "")
@@ -275,13 +278,49 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
   }
 
   const handleSave = () => {
-    if (selectedApps.length === 0) return
-    const keys = keyCombo.trim() ? keyCombo.split("+").map(k => k.trim()) : ["Ctrl", "Shift", "S"]
-    onSave(shortcutName, selectedApps, keys, executionMode)
+    if (selectedApps.length === 0) {
+      setErrorToast("⚠️ Please select at least one application!")
+      setTimeout(() => setErrorToast(null), 3000)
+      return
+    }
+
+    const trimmedCombo = keyCombo.trim() ? keyCombo.trim() : "Ctrl + Shift + S"
+    const parts = trimmedCombo.split("+").map(k => k.trim())
+    const lastPart = parts[parts.length - 1]
+    const isModifierOnly = ["Ctrl", "Alt", "Shift", "Win", "Control", "Meta"].includes(lastPart)
+
+    if (isModifierOnly) {
+      setErrorToast("⚠️ Incomplete hotkey! Please include a main key (e.g. Ctrl + Shift + S)")
+      setTimeout(() => setErrorToast(null), 3000)
+      return
+    }
+
+    const conflictResult = checkShortcutConflict(trimmedCombo)
+    if (conflictResult.hasConflict) {
+      const alertMsg = `⚠️ KEY COMBINATION ALREADY USED!\n\nThe key combination "${trimmedCombo}" is already assigned to ${conflictResult.conflictName}.\n\nPlease do not repeat shortcut keys! Choose a different key combination.`
+      window.alert(alertMsg)
+      setErrorToast(`⚠️ Hotkey Already Used! "${trimmedCombo}" is assigned to ${conflictResult.conflictName}. Please do not repeat keys!`)
+      setTimeout(() => setErrorToast(null), 3500)
+      return
+    }
+
+    onSave(shortcutName, selectedApps, parts, executionMode)
   }
 
   return (
     <div className="space-y-8 animate-fade-up select-none pb-8 relative text-left">
+      {/* Toast Notification */}
+      {errorToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#252326] text-[#F2D8C2] border border-amber-500/50 p-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-fade-up max-w-[420px]">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+            <XCircle className="h-5 w-5" />
+          </div>
+          <p className="text-xs font-semibold leading-relaxed flex-1">{errorToast}</p>
+          <button onClick={() => setErrorToast(null)} className="text-white/50 hover:text-white border-none bg-transparent cursor-pointer">
+            <XCircle className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       <div className="flex items-center gap-4 border-b border-white/10 pb-4">
         <button 
           onClick={onBack}

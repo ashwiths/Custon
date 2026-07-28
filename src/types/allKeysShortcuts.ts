@@ -1,11 +1,6 @@
 export type ShortcutCategory =
   | "All Shortcuts"
-  | "Windows Keys"
   | "General Shortcuts"
-  | "File Explorer"
-  | "Virtual Desktop"
-  | "Custom Actions"
-  | "Advanced"
 
 export interface KeyShortcutItem {
   id: string
@@ -27,163 +22,14 @@ export const COMMON_CONFLICT_SHORTCUTS = [
   "Ctrl + Y",
   "Alt + Tab",
   "Alt + F4",
-  "Win + L",
-  "Win + D",
-  "Win + E",
-  "Win + R",
-  "Win + S",
-  "Win + I",
-  "Win + Tab",
-  "Win + A",
-  "Win + P",
+  "F5",
+  "Win + Shift + S",
   "PrtScn"
 ]
 
 export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
-  // Windows Keys
   {
-    id: "ks-1",
-    action: "Show Desktop",
-    defaultShortcut: "Win + D",
-    customShortcut: "",
-    category: "Windows Keys",
-    status: true,
-    systemAction: "show_desktop"
-  },
-  {
-    id: "ks-2",
-    action: "Open Settings",
-    defaultShortcut: "Win + I",
-    customShortcut: "",
-    category: "Windows Keys",
-    status: true,
-    systemAction: "open_settings"
-  },
-  {
-    id: "ks-3",
-    action: "Open Run",
-    defaultShortcut: "Win + R",
-    customShortcut: "",
-    category: "Windows Keys",
-    status: true,
-    systemAction: "open_run"
-  },
-  {
-    id: "ks-4",
-    action: "Open Search",
-    defaultShortcut: "Win + S",
-    customShortcut: "",
-    category: "Windows Keys",
-    status: true,
-    systemAction: "open_search"
-  },
-  {
-    id: "ks-5",
-    action: "Open Action Center",
-    defaultShortcut: "Win + A",
-    customShortcut: "",
-    category: "Windows Keys",
-    status: true,
-    systemAction: "open_action_center"
-  },
-  {
-    id: "ks-6",
-    action: "Lock PC",
-    defaultShortcut: "Win + L",
-    customShortcut: "",
-    category: "Windows Keys",
-    status: true,
-    systemAction: "lock_pc"
-  },
-
-  // File Explorer
-  {
-    id: "ks-7",
-    action: "Open File Explorer",
-    defaultShortcut: "Win + E",
-    customShortcut: "",
-    category: "File Explorer",
-    status: true,
-    systemAction: "open_explorer"
-  },
-
-  // Virtual Desktop
-  {
-    id: "ks-8",
-    action: "Open Task View",
-    defaultShortcut: "Win + Tab",
-    customShortcut: "",
-    category: "Virtual Desktop",
-    status: true,
-    systemAction: "open_task_view"
-  },
-  {
-    id: "ks-9",
-    action: "New Virtual Desktop",
-    defaultShortcut: "Win + Ctrl + D",
-    customShortcut: "",
-    category: "Virtual Desktop",
-    status: true,
-    systemAction: "new_virtual_desktop"
-  },
-  {
-    id: "ks-10",
-    action: "Close Virtual Desktop",
-    defaultShortcut: "Win + Ctrl + F4",
-    customShortcut: "",
-    category: "Virtual Desktop",
-    status: true,
-    systemAction: "close_virtual_desktop"
-  },
-
-  // General Shortcuts
-  {
-    id: "ks-11",
-    action: "Close Active Window",
-    defaultShortcut: "Alt + F4",
-    customShortcut: "",
-    category: "General Shortcuts",
-    status: true,
-    systemAction: "close_active_window"
-  },
-  {
-    id: "ks-12",
-    action: "Take Screenshot",
-    defaultShortcut: "PrtScn",
-    customShortcut: "",
-    category: "General Shortcuts",
-    status: true,
-    systemAction: "take_screenshot"
-  },
-  {
-    id: "ks-13",
-    action: "Copy",
-    defaultShortcut: "Ctrl + C",
-    customShortcut: "",
-    category: "General Shortcuts",
-    status: true,
-    systemAction: "copy"
-  },
-  {
-    id: "ks-14",
-    action: "Cut",
-    defaultShortcut: "Ctrl + X",
-    customShortcut: "",
-    category: "General Shortcuts",
-    status: true,
-    systemAction: "cut"
-  },
-  {
-    id: "ks-15",
-    action: "Paste",
-    defaultShortcut: "Ctrl + V",
-    customShortcut: "",
-    category: "General Shortcuts",
-    status: true,
-    systemAction: "paste"
-  },
-  {
-    id: "ks-16",
+    id: "gen-1",
     action: "Select All",
     defaultShortcut: "Ctrl + A",
     customShortcut: "",
@@ -192,7 +38,34 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     systemAction: "select_all"
   },
   {
-    id: "ks-17",
+    id: "gen-2",
+    action: "Copy",
+    defaultShortcut: "Ctrl + C",
+    customShortcut: "",
+    category: "General Shortcuts",
+    status: true,
+    systemAction: "copy"
+  },
+  {
+    id: "gen-3",
+    action: "Cut",
+    defaultShortcut: "Ctrl + X",
+    customShortcut: "",
+    category: "General Shortcuts",
+    status: true,
+    systemAction: "cut"
+  },
+  {
+    id: "gen-4",
+    action: "Paste",
+    defaultShortcut: "Ctrl + V",
+    customShortcut: "",
+    category: "General Shortcuts",
+    status: true,
+    systemAction: "paste"
+  },
+  {
+    id: "gen-5",
     action: "Undo",
     defaultShortcut: "Ctrl + Z",
     customShortcut: "",
@@ -201,7 +74,7 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     systemAction: "undo"
   },
   {
-    id: "ks-18",
+    id: "gen-6",
     action: "Redo",
     defaultShortcut: "Ctrl + Y",
     customShortcut: "",
@@ -210,7 +83,7 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     systemAction: "redo"
   },
   {
-    id: "ks-19",
+    id: "gen-7",
     action: "Switch Apps",
     defaultShortcut: "Alt + Tab",
     customShortcut: "",
@@ -218,35 +91,31 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     status: true,
     systemAction: "switch_apps"
   },
-
-  // Custom Actions
   {
-    id: "ks-20",
-    action: "Open Task Manager",
-    defaultShortcut: "Ctrl + Shift + Esc",
+    id: "gen-8",
+    action: "Close Active Window",
+    defaultShortcut: "Alt + F4",
     customShortcut: "",
-    category: "Custom Actions",
+    category: "General Shortcuts",
     status: true,
-    systemAction: "task_manager"
+    systemAction: "close_active_window"
   },
   {
-    id: "ks-21",
-    action: "Open Snipping Tool",
+    id: "gen-9",
+    action: "Refresh Window / Webpage",
+    defaultShortcut: "F5",
+    customShortcut: "",
+    category: "General Shortcuts",
+    status: true,
+    systemAction: "refresh"
+  },
+  {
+    id: "gen-10",
+    action: "Take Screenshot",
     defaultShortcut: "Win + Shift + S",
     customShortcut: "",
-    category: "Custom Actions",
+    category: "General Shortcuts",
     status: true,
-    systemAction: "snipping_tool"
-  },
-
-  // Advanced
-  {
-    id: "ks-22",
-    action: "Projection Settings",
-    defaultShortcut: "Win + P",
-    customShortcut: "",
-    category: "Advanced",
-    status: true,
-    systemAction: "projection_settings"
+    systemAction: "take_screenshot"
   }
 ]
