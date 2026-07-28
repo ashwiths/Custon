@@ -21,23 +21,19 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
   useEffect(() => {
     const startTime = performance.now()
-    const duration = 200 // Ultra-fast 200ms launch experience
+    const duration = 1600 // Slower 1.6s splash presentation for clear visibility
 
     let animationFrameId: number
 
     const tick = (currentTime: number) => {
       const elapsed = currentTime - startTime
       const rawProgress = Math.min(100, Math.floor((elapsed / duration) * 100))
-
-      // Smooth power curve for progress percentage
       const eased = Math.min(100, Math.round(100 * Math.pow(rawProgress / 100, 0.85)))
 
-      // Throttle React state updates to integer changes to keep frame rate high
       if (eased !== lastProgressRef.current) {
         lastProgressRef.current = eased
         setDisplayProgress(eased)
 
-        // Find matching status step text
         for (let i = STATUS_STEPS.length - 1; i >= 0; i--) {
           if (eased >= STATUS_STEPS[i].threshold) {
             setStatusText(STATUS_STEPS[i].text)
@@ -52,13 +48,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         setDisplayProgress(100)
         setStatusText("SYSTEM READY")
         
-        // Instant curtain exit
         setTimeout(() => {
           setIsExiting(true)
           setTimeout(() => {
             onComplete()
-          }, 150) // 150ms smooth fade exit
-        }, 50)
+          }, 500) // 500ms smooth curtain exit
+        }, 150)
       }
     }
 
@@ -74,9 +69,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       className="fixed inset-0 z-[99999] flex flex-col items-center justify-center select-none overflow-hidden"
       style={{
         backgroundColor: "#121013",
-        transition: "opacity 350ms cubic-bezier(0.16, 1, 0.3, 1), transform 350ms cubic-bezier(0.16, 1, 0.3, 1)",
+        transition: "opacity 500ms cubic-bezier(0.16, 1, 0.3, 1), transform 500ms cubic-bezier(0.16, 1, 0.3, 1)",
         opacity: isExiting ? 0 : 1,
-        transform: isExiting ? "scale(1.03) translate3d(0,0,0)" : "scale(1) translate3d(0,0,0)",
+        transform: isExiting ? "scale(1.04) translate3d(0,0,0)" : "scale(1) translate3d(0,0,0)",
         pointerEvents: isExiting ? "none" : "auto",
         willChange: "opacity, transform",
       }}
