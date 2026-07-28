@@ -236,7 +236,19 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
     }
 
     if (keys.length > 0) {
-      setKeyCombo(keys.join(" + "))
+      const comboStr = keys.join(" + ")
+      setKeyCombo(comboStr)
+
+      const isModifierOnly = ["Control", "Shift", "Alt", "Meta"].includes(key)
+      if (!isModifierOnly) {
+        const conflict = checkShortcutConflict(comboStr)
+        if (conflict.hasConflict) {
+          window.alert(`⚠️ KEY ALREADY USED!\n\nThe key combination "${comboStr}" is already assigned to ${conflict.conflictName}.\n\nYou cannot reuse or repeat this key combination! Please choose a different shortcut.`)
+          setKeyCombo("")
+          setErrorToast(`⚠️ Key "${comboStr}" already used by ${conflict.conflictName}!`)
+          setTimeout(() => setErrorToast(null), 3500)
+        }
+      }
     }
   }
 

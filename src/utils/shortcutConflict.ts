@@ -1,83 +1,134 @@
-import { DEFAULT_KEY_SHORTCUTS } from "@/types/allKeysShortcuts"
+import { DEFAULT_KEY_SHORTCUTS, KeyShortcutItem } from "@/types/allKeysShortcuts"
 
 export interface ConflictCheckResult {
   hasConflict: boolean
   conflictName?: string
 }
 
-/**
- * Checks if a proposed key combination is already assigned to another shortcut in:
- * 1. CustomizeAllKeys (General/System Key Shortcuts)
- * 2. TargetShortcuts (Workspace/Target App Shortcuts)
- */
-export function checkShortcutConflict(
-  proposedCombo: string,
-  currentId?: string
-): ConflictCheckResult {
-  const normProposed = proposedCombo
-    .split("+")
-    .map((k: string) => k.trim().toLowerCase())
-    .join(" + ")
+let cachedTargetShortcuts: any[] = []
+let lastTargetCacheTime = 0
 
-  if (!normProposed) return { hasConflict: false }
-
-  // 1. Check General Key Shortcuts (stored in localStorage or DEFAULT_KEY_SHORTCUTS)
-  try {
-    const savedKeys = localStorage.getItem("custom_all_key_shortcuts")
-    const keyList = savedKeys ? JSON.parse(savedKeys) : DEFAULT_KEY_SHORTCUTS
-    
-    if (Array.isArray(keyList)) {
-      for (const item of keyList) {
-        if (item.id === currentId) continue
-        if (item.status === false) continue
-
-        const activeKey = (item.customShortcut || item.defaultShortcut || "").trim()
-        if (!activeKey) continue
-
-        const normActive = activeKey
-          .split("+")
-          .map((k: string) => k.trim().toLowerCase())
-          .join(" + ")
-
-        if (normActive === normProposed) {
-          return { 
-            hasConflict: true, 
-            conflictName: item.action ? `General Hotkey (${item.action})` : "General Shortcut" 
-          }
-        }
-      }
-    }
-  } catch {
-    // Fallback
+function getTargetShortcutsCached(): any[] {
+  const now = Date.now()
+  if (now - lastTargetCacheTime < 1000 && cachedTargetShortcuts.length > 0) {
+    return cachedTargetShortcuts
   }
-
-  // 2. Check Target Workspace Shortcuts (stored in localStorage)
   try {
     const savedTargets = localStorage.getItem("custom_workspace_shortcuts")
     if (savedTargets) {
-      const parsedTargets = JSON.parse(savedTargets)
-      if (Array.isArray(parsedTargets)) {
-        for (const item of parsedTargets) {
-          if (item.id === currentId) continue
-          if (!item.keys || !Array.isArray(item.keys)) continue
+      cachedTargetShortcuts = JSON.parse(savedTargets) || []
+      lastTargetCacheTime = now
+      return cachedTargetShortcuts
+    }
+  } catch {
+    // Ignore
+  }
+  cachedTargetShortcuts = []
+  lastTargetCacheTime = now
+  return []
+}
 
-          const targetCombo = item.keys.join(" + ").trim()
-          const normTarget = targetCombo
-            .split("+")
-            .map((k: string) => k.trim().toLowerCase())
-            .join(" + ")
+/**
+ * Normalizes a key combination string into a canonical order-agnostic format.
+ * E.g., "Ctrl + Shift + V" and "Shift + Ctrl + V" both normalize to "ctrl + shift + v".
+ */
+export function normalizeCombo(comboStr: string): string {
+  if (!comboStr || !comboStr.trim()) return ""
+  const parts = comboStr
+    .split("+")
+    .map((k: string) => k.trim().toLowerCase())
+    .filter(Boolean)
 
-          if (normTarget === normProposed) {
-            return { 
-              hasConflict: true, 
-              conflictName: item.name ? `Target Shortcut (${item.name})` : "Target Shortcut" 
-            }
-          }
+  const modifiers: string[] = []
+  const mainKeys: string[] = []
+
+  for (const part of parts) {
+    if (["ctrl", "control", "alt", "shift", "win", "cmd", "meta"].includes(part)) {
+      if (part === "control") modifiers.push("ctrl")
+      else if (part === "cmd" || part === "meta") modifiers.push("win")
+      else modifiers.push(part)
+    } else {
+      mainKeys.push(part)
+    }
+  }
+
+  modifiers.sort()
+  mainKeys.sort()
+
+  return [...modifiers, ...mainKeys].join(" + ")
+}
+
+/**
+ * Checks if a proposed key combination is already assigned to another shortcut in:
+ * 1. General/System Key Shortcuts (in-memory or localStorage or DEFAULT_KEY_SHORTCUTS)
+ * 2. Target Workspace Shortcuts (localStorage cached)
+ */
+export function checkShortcutConflict(
+  proposedCombo: string,
+  currentId?: string,
+  inMemoryGeneralKeys?: KeyShortcutItem[]
+): ConflictCheckResult {
+  const normProposed = normalizeCombo(proposedCombo)
+
+  if (!normProposed) return { hasConflict: false }
+
+  // 1. Determine active list of general key shortcuts
+  let generalList: KeyShortcutItem[] = DEFAULT_KEY_SHORTCUTS
+  if (inMemoryGeneralKeys && inMemoryGeneralKeys.length > 0) {
+    generalList = inMemoryGeneralKeys
+  } else {
+    try {
+      const savedKeys = localStorage.getItem("custom_all_key_shortcuts")
+      if (savedKeys) {
+        const parsed = JSON.parse(savedKeys)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          generalList = parsed
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  // 1a. Check general key list (both custom and default active shortcuts)
+  for (const item of generalList) {
+    if (item.id === currentId) continue
+    if (item.status === false) continue
+
+    // Check custom shortcut if set
+    if (item.customShortcut && item.customShortcut.trim()) {
+      if (normalizeCombo(item.customShortcut) === normProposed) {
+        return {
+          hasConflict: true,
+          conflictName: item.action ? `General Hotkey (${item.action})` : "General Shortcut"
         }
       }
     }
-  } catch {
-    // Fallback
+
+    // Check default shortcut if custom is not set or even if custom is set
+    if (item.defaultShortcut && item.defaultShortcut.trim()) {
+      if (normalizeCombo(item.defaultShortcut) === normProposed) {
+        return {
+          hasConflict: true,
+          conflictName: item.action ? `Default Hotkey (${item.action})` : "Default Shortcut"
+        }
+      }
+    }
+  }
+
+  // 2. Check Target Workspace Shortcuts (using cached target shortcuts)
+  const targets = getTargetShortcutsCached()
+  for (const item of targets) {
+    if (item.id === currentId) continue
+    if (!item.keys || !Array.isArray(item.keys)) continue
+
+    const targetCombo = item.keys.join(" + ").trim()
+    if (normalizeCombo(targetCombo) === normProposed) {
+      return {
+        hasConflict: true,
+        conflictName: item.name ? `Target Shortcut (${item.name})` : "Target Workspace Shortcut"
+      }
+    }
   }
 
   return { hasConflict: false }

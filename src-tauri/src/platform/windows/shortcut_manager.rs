@@ -43,6 +43,11 @@ impl WindowsShortcutManager {
                         "tab" => VK_TAB as u32,
                         "backspace" => VK_BACK as u32,
                         "delete" | "del" => VK_DELETE as u32,
+                        "capslock" | "capital" => VK_CAPITAL as u32,
+                        "numlock" => VK_NUMLOCK as u32,
+                        "scrolllock" | "scroll" => VK_SCROLL as u32,
+                        "insert" | "ins" => VK_INSERT as u32,
+                        "pause" => VK_PAUSE as u32,
                         "end" => VK_END as u32,
                         "home" => VK_HOME as u32,
                         "pageup" | "prior" => VK_PRIOR as u32,
@@ -196,6 +201,9 @@ impl WindowsShortcutManager {
             "refresh" => {
                 Self::send_key_combo(&[], VK_F5);
             }
+            "switch_apps" => {
+                Self::send_key_combo(&[VK_MENU], VK_ESCAPE);
+            }
             _ => {}
         }
     }
@@ -222,9 +230,8 @@ impl PlatformShortcutManager for WindowsShortcutManager {
         }
 
         let (tx, rx) = mpsc::channel::<Vec<ShortcutConfig>>();
-        *self.tx.lock().unwrap() = Some(tx);
-
         let (all_tx, all_rx) = mpsc::channel::<Vec<AllKeyShortcutConfig>>();
+        *self.tx.lock().unwrap() = Some(tx);
         *self.all_key_tx.lock().unwrap() = Some(all_tx);
 
         let (thread_id_tx, thread_id_rx) = mpsc::channel::<u32>();
@@ -262,11 +269,20 @@ impl PlatformShortcutManager for WindowsShortcutManager {
                     }
                 }
                 for (idx, cfg) in configs.iter().enumerate() {
-                    if !cfg.status || cfg.custom_shortcut.trim().is_empty() {
+                    if !cfg.status {
                         continue;
                     }
+                    let combo = if !cfg.custom_shortcut.trim().is_empty() {
+                        &cfg.custom_shortcut
+                    } else {
+                        &cfg.default_shortcut
+                    };
+                    if combo.trim().is_empty() {
+                        continue;
+                    }
+
                     let hotkey_id = BASE_ALL_KEY_HOTKEY_ID + idx as i32;
-                    let (modifiers, vk_code) = Self::parse_key_combo(&cfg.custom_shortcut);
+                    let (modifiers, vk_code) = Self::parse_key_combo(combo);
                     if vk_code != 0 {
                         let ok = unsafe { RegisterHotKey(0, hotkey_id, modifiers, vk_code) };
                         if ok != 0 {

@@ -30,14 +30,13 @@ import {
   DEFAULT_KEY_SHORTCUTS, 
   COMMON_CONFLICT_SHORTCUTS 
 } from "@/types/allKeysShortcuts"
-import { checkShortcutConflict } from "@/utils/shortcutConflict"
+import { checkShortcutConflict, normalizeCombo } from "@/utils/shortcutConflict"
 
 interface CustomizeAllKeysProps {
   onBack: () => void
 }
 
 const STORAGE_KEY = "custom_all_key_shortcuts"
-const SUPPRESS_WARNING_KEY = "suppress_shortcut_conflict_warning"
 
 const CATEGORIES: { id: ShortcutCategory; label: string; icon: React.FC<{ className?: string }> }[] = [
   { id: "All Shortcuts", label: "All Shortcuts", icon: Sliders },
@@ -79,6 +78,7 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
   const [newActionName, setNewActionName] = React.useState("")
   const [newCategory, setNewCategory] = React.useState<Exclude<ShortcutCategory, "All Shortcuts">>("General Shortcuts")
   const [newDefaultKey, setNewDefaultKey] = React.useState("")
+  const [conflictName, setConflictName] = React.useState<string>("")
 
   const syncWithBackend = async (items: KeyShortcutItem[]) => {
     try {
@@ -104,18 +104,37 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
     setTimeout(() => setToastMessage(null), 2500)
   }
 
-  const isConflictShortcut = (keyCombo: string) => {
-    if (!keyCombo.trim()) return false
-    const normalized = keyCombo.trim().toLowerCase()
-    return COMMON_CONFLICT_SHORTCUTS.some(c => c.toLowerCase() === normalized)
+  const getConflictInfo = (keyCombo: string, currentId?: string) => {
+    if (!keyCombo.trim()) return { hasConflict: false }
+
+    const check = checkShortcutConflict(keyCombo, currentId, shortcuts)
+    if (check.hasConflict) {
+      return check
+    }
+
+    const normalized = normalizeCombo(keyCombo)
+    if (COMMON_CONFLICT_SHORTCUTS.some(c => normalizeCombo(c) === normalized)) {
+      return { hasConflict: true, conflictName: "Windows System Hotkey" }
+    }
+
+    return { hasConflict: false }
   }
 
   // Open dedicated key recording page for a shortcut
   const openRecordingPage = (item: KeyShortcutItem) => {
     setCustomizingShortcut(item)
     setRecordedKeys(item.customShortcut)
+    setConflictName("")
     setShowConflictNotice(false)
     setIsRecording(true)
+
+    if (item.customShortcut) {
+      const conflict = getConflictInfo(item.customShortcut, item.id)
+      if (conflict.hasConflict) {
+        setShowConflictNotice(true)
+        setConflictName(conflict.conflictName || "another shortcut")
+      }
+    }
   }
 
   // Key recorder keydown event handler
@@ -144,6 +163,9 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
       else if (key === "Tab") friendlyKey = "Tab"
       else if (key === "Backspace") friendlyKey = "Backspace"
       else if (key === "Delete") friendlyKey = "Delete"
+      else if (key === "CapsLock") friendlyKey = "CapsLock"
+      else if (key === "NumLock") friendlyKey = "NumLock"
+      else if (key === "Insert") friendlyKey = "Insert"
       else if (key === "PrintScreen") friendlyKey = "PrtScn"
       else if (key.length === 1) friendlyKey = key.toUpperCase()
       
@@ -153,16 +175,28 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
     if (keys.length > 0) {
       const comboStr = keys.join(" + ")
       setRecordedKeys(comboStr)
-      if (isConflictShortcut(comboStr)) {
-        setShowConflictNotice(true)
+
+      const isModifierOnly = ["Control", "Shift", "Alt", "Meta"].includes(key)
+      if (!isModifierOnly) {
+        const conflict = getConflictInfo(comboStr, customizingShortcut?.id)
+        if (conflict.hasConflict) {
+          setShowConflictNotice(true)
+          setConflictName(conflict.conflictName || "another shortcut")
+          window.alert(`⚠️ KEY ALREADY USED!\n\nThe key combination "${comboStr}" is already assigned to ${conflict.conflictName}.\n\nYou cannot reuse or repeat this key combination! Please choose a different shortcut.`)
+          setRecordedKeys("")
+        } else {
+          setShowConflictNotice(false)
+          setConflictName("")
+        }
       } else {
         setShowConflictNotice(false)
+        setConflictName("")
       }
     }
   }
 
-  // Open Conflict & Confirmation Transparent Modal Popup
-  const handleApplyCustomKey = (bypassConflict = false) => {
+  // Apply & save custom shortcut immediately
+  const handleApplyCustomKey = () => {
     if (!customizingShortcut) return
 
     const trimmed = recordedKeys.trim()
@@ -182,18 +216,12 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
     }
 
     // Check if hotkey is already in use by another shortcut
-    const conflictResult = checkShortcutConflict(trimmed, customizingShortcut.id)
+    const conflictResult = checkShortcutConflict(trimmed, customizingShortcut.id, shortcuts)
     if (conflictResult.hasConflict) {
       const alertMsg = `⚠️ KEY COMBINATION ALREADY USED!\n\nThe key combination "${trimmed}" is already assigned to ${conflictResult.conflictName}.\n\nPlease do not repeat shortcut keys! Choose a different key combination.`
       window.alert(alertMsg)
       showToast(`⚠️ Hotkey Already Used! "${trimmed}" is assigned to ${conflictResult.conflictName}. Please do not repeat keys!`)
-      return
-    }
-
-    const suppressWarning = localStorage.getItem(SUPPRESS_WARNING_KEY) === "true"
-
-    if (!bypassConflict && !suppressWarning) {
-      setShowConfirmModal(true)
+      setRecordedKeys("")
       return
     }
 
@@ -280,16 +308,18 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
     showToast(`✓ Restored all shortcuts to default`)
   }
 
-  // Filtering
-  const filteredShortcuts = shortcuts.filter(s => {
-    const matchesCategory = activeCategory === "All Shortcuts" || s.category === activeCategory
-    const query = searchQuery.toLowerCase().trim()
-    const matchesSearch = !query || 
-      s.action.toLowerCase().includes(query) ||
-      s.defaultShortcut.toLowerCase().includes(query) ||
-      s.customShortcut.toLowerCase().includes(query)
-    return matchesCategory && matchesSearch
-  })
+  // Filtering (Memoized for max performance)
+  const filteredShortcuts = React.useMemo(() => {
+    return shortcuts.filter(s => {
+      const matchesCategory = activeCategory === "All Shortcuts" || s.category === activeCategory
+      const query = searchQuery.toLowerCase().trim()
+      const matchesSearch = !query || 
+        s.action.toLowerCase().includes(query) ||
+        s.defaultShortcut.toLowerCase().includes(query) ||
+        s.customShortcut.toLowerCase().includes(query)
+      return matchesCategory && matchesSearch
+    })
+  }, [shortcuts, activeCategory, searchQuery])
 
   // Get action icon
   const getActionIcon = (actionName: string) => {
@@ -400,15 +430,17 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
 
           {/* CONFLICT WARNING BANNER */}
           {showConflictNotice && (
-            <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs space-y-2 leading-relaxed">
-              <div className="flex items-center gap-2 font-bold text-amber-400">
-                <AlertTriangle className="w-5 h-5 shrink-0" />
-                <span>⚠️ Shortcut Conflict Warning</span>
+            <div className="p-4 rounded-2xl bg-amber-500/20 border-2 border-amber-500/60 text-amber-200 text-xs space-y-2 leading-relaxed animate-fade-up">
+              <div className="flex items-center gap-2 font-bold text-amber-300 text-sm">
+                <AlertTriangle className="w-5 h-5 shrink-0 text-amber-400" />
+                <span>⚠️ KEY COMBINATION ALREADY USED!</span>
               </div>
               <p>
-                The shortcut <strong className="text-amber-200 font-mono">{recordedKeys}</strong> is commonly used by Windows and applications.
+                The shortcut <strong className="text-white font-mono bg-white/10 px-2 py-0.5 rounded border border-white/20">{recordedKeys}</strong> is already assigned to <strong className="text-amber-300 font-bold">{conflictName}</strong>.
               </p>
-              <p>The default Windows shortcut will continue working simultaneously.</p>
+              <p className="text-amber-300/90 font-bold">
+                Please do not repeat shortcut keys! Choose a different key combination.
+              </p>
             </div>
           )}
 
@@ -435,7 +467,7 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
               </button>
               <button
                 type="button"
-                onClick={() => handleApplyCustomKey(false)}
+                onClick={() => handleApplyCustomKey()}
                 className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#A67165] to-[#734E46] hover:from-[#734E46] hover:to-[#A67165] shadow-lg border-none cursor-pointer flex items-center gap-1.5 transition-all"
               >
                 <Check className="w-4 h-4" />
@@ -480,7 +512,7 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
                 </div>
 
                 {/* Conflict Notice */}
-                {isConflictShortcut(recordedKeys) ? (
+                {getConflictInfo(recordedKeys, customizingShortcut?.id).hasConflict ? (
                   <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/35 text-amber-200 text-xs space-y-1.5 leading-relaxed">
                     <div className="flex items-center gap-2 font-bold text-amber-400">
                       <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -698,7 +730,7 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
           </div>
         ) : (
           filteredShortcuts.map((item) => {
-            const hasConflict = isConflictShortcut(item.customShortcut)
+            const hasConflict = item.customShortcut.trim() ? getConflictInfo(item.customShortcut, item.id).hasConflict : false
             const isAssigned = item.customShortcut.trim().length > 0
 
             return (
