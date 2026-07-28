@@ -375,7 +375,7 @@ export const TargetShortcuts: React.FC = () => {
         <div>
           <h1 className="text-[26px] font-black text-[#252326] dark:text-[#F2D8C2] flex items-center gap-2.5">
             <Zap className="w-7 h-7 text-[#A67165]" />
-            <span>Active Shortcuts Manager</span>
+            <span>Live Shortcuts Manager</span>
           </h1>
           <p className="text-xs font-semibold text-[#6B5B54] dark:text-[#A69281] max-w-[650px] leading-relaxed mt-1">
             Overview of all active custom shortcuts created across target applications, master close triggers, and customized Windows hotkeys.

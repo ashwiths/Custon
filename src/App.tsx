@@ -3,6 +3,7 @@ import { MainLayout } from "@/layouts/MainLayout"
 import { Dashboard } from "@/pages/Dashboard"
 import { TargetShortcuts } from "@/pages/TargetShortcuts"
 import { CreateAppShortcut } from "@/pages/CreateAppShortcut"
+import { CreateFullClose } from "@/pages/CreateFullClose"
 import { CustomizeAllKeys } from "@/pages/CustomizeAllKeys"
 import { Settings } from "@/pages/Settings"
 import { HelpPage } from "@/pages/Help"
@@ -83,6 +84,18 @@ function App() {
                 import("@tauri-apps/api/core").then(({ invoke }) => {
                   invoke("sync_shortcuts", { shortcuts: updated }).catch(() => {})
                 })
+              } catch {}
+              setCurrentPage("target-shortcuts")
+            }}
+          />
+        )
+      case "close-all-windows":
+        return (
+          <CreateFullClose
+            onBack={() => setCurrentPage("dashboard")}
+            onSave={(keys) => {
+              try {
+                localStorage.setItem("custom_full_close_shortcut", JSON.stringify(keys))
               } catch {}
               setCurrentPage("target-shortcuts")
             }}

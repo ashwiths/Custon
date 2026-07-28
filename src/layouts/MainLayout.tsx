@@ -17,12 +17,21 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   setDarkMode,
   children,
 }) => {
+  const mainRef = React.useRef<HTMLElement>(null)
+
+  React.useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0
+    }
+  }, [currentPage])
+
   const getFormattedTitle = (page: ActivePage) => {
     switch (page) {
       case "dashboard": return "Dashboard"
       case "create-app-shortcut": return "Target Apps"
+      case "close-all-windows": return "Close All Windows"
       case "customize-keys": return "Customize Keys"
-      case "target-shortcuts": return "Active Shortcuts"
+      case "target-shortcuts": return "Live Shortcuts"
       case "settings": return "Settings"
       case "help": return "Help & Support"
       default: return "Dashboard"
@@ -34,7 +43,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 relative z-10">
         <TopNavbar title={getFormattedTitle(currentPage)} darkMode={darkMode} setDarkMode={setDarkMode} />
-        <main className={`flex-1 ${currentPage === "settings" ? "overflow-hidden p-5" : "overflow-y-auto p-8"}`}>
+        <main ref={mainRef} className={`flex-1 ${currentPage === "settings" ? "overflow-hidden p-5" : "overflow-y-auto p-8"}`}>
           <div
             className={`mx-auto animate-fade-up ${
               currentPage === "settings" ? "w-full max-w-none h-full flex flex-col" : "w-full max-w-[1320px] pb-24"

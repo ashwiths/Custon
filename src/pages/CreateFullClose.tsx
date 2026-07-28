@@ -89,8 +89,26 @@ export const CreateFullClose: React.FC<CreateFullCloseProps> = ({ onBack, onSave
     }
 
     try {
+      const fullCloseItem = {
+        id: "full-close-master",
+        name: "Close All Windows",
+        apps: ["all-apps"],
+        keys: keys,
+        status: "Enabled",
+        lastUsed: "Just now",
+        isFullClose: true,
+        executionMode: "stealth"
+      }
+      const saved = localStorage.getItem("custom_workspace_shortcuts")
+      const existing = saved ? JSON.parse(saved) : []
+      const filtered = existing.filter((s: any) => s.id !== "full-close-master" && !s.isFullClose)
+      const updated = [fullCloseItem, ...filtered]
+      localStorage.setItem("custom_workspace_shortcuts", JSON.stringify(updated))
+      localStorage.setItem("custom_full_close_shortcut", JSON.stringify(keys))
+
       const { invoke } = await import("@tauri-apps/api/core")
       await invoke("set_workspace_hotkey", { keyCombo: keys.join(" + ") })
+      await invoke("sync_shortcuts", { shortcuts: updated })
     } catch {
       // Browser environment guard
     }
