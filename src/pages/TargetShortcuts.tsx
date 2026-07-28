@@ -544,25 +544,29 @@ export const TargetShortcuts: React.FC = () => {
               const isCustom = Boolean(item.customShortcut.trim())
 
               return (
-                <div key={item.id} className="p-4 rounded-2xl bg-white/5 hover:bg-white/[0.08] border border-white/12 flex items-center justify-between gap-3 text-left transition-all">
-                  <div className="min-w-0 flex-1">
-                    <h5 className="text-sm font-bold text-white truncate" title={item.action}>{item.action}</h5>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-semibold text-[#A69281] uppercase block">{item.category}</span>
-                      {isCustom ? (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#A67165]/30 text-[#F2D8C2] border border-[#A67165]/40">
-                          Custom Override
-                        </span>
-                      ) : (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-white/10 text-white/60">
-                          System Default
-                        </span>
-                      )}
+                <div key={item.id} className="p-4.5 rounded-2xl bg-white/5 hover:bg-white/[0.08] border border-white/12 flex flex-col justify-between gap-3 text-left transition-all shadow-md">
+                  <div className="flex items-start justify-between gap-3 min-w-0">
+                    <div className="min-w-0 flex-1">
+                      <h5 className="text-sm font-bold text-white truncate" title={item.action}>{item.action}</h5>
+                      <span className="text-[10px] font-semibold text-[#A69281] uppercase block mt-0.5">{item.category}</span>
                     </div>
+                    <kbd className="px-3 py-1.5 rounded-xl bg-black/60 border border-white/20 font-mono text-xs font-bold text-[#F2D8C2] shrink-0 shadow-inner whitespace-nowrap">
+                      {displayCombo}
+                    </kbd>
                   </div>
-                  <kbd className="px-3 py-1.5 rounded-xl bg-black/60 border border-white/20 font-mono text-xs font-bold text-[#F2D8C2] shrink-0 shadow-inner">
-                    {displayCombo}
-                  </kbd>
+                  
+                  <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[10px]">
+                    <span className="text-white/50 font-medium">Key Status</span>
+                    {isCustom ? (
+                      <span className="font-bold px-2 py-0.5 rounded bg-[#A67165]/30 text-[#F2D8C2] border border-[#A67165]/40">
+                        Custom Override
+                      </span>
+                    ) : (
+                      <span className="font-bold px-2 py-0.5 rounded bg-white/10 text-white/60">
+                        System Default
+                      </span>
+                    )}
+                  </div>
                 </div>
               )
             })}

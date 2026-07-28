@@ -52,7 +52,7 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
         if (Array.isArray(parsed) && parsed.length > 0) {
           return DEFAULT_KEY_SHORTCUTS.map(def => {
             const match = parsed.find((p: KeyShortcutItem) => p.action === def.action || p.id === def.id)
-            return match ? { ...def, customShortcut: match.customShortcut || "", status: match.status !== undefined ? match.status : true } : def
+            return match ? { ...def, customShortcut: match.customShortcut || "", status: match.status !== undefined ? match.status : false } : def
           })
         }
       }

@@ -34,7 +34,7 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     defaultShortcut: "Ctrl + A",
     customShortcut: "",
     category: "General Shortcuts",
-    status: true,
+    status: false,
     systemAction: "select_all"
   },
   {
@@ -43,7 +43,7 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     defaultShortcut: "Ctrl + C",
     customShortcut: "",
     category: "General Shortcuts",
-    status: true,
+    status: false,
     systemAction: "copy"
   },
   {
@@ -52,7 +52,7 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     defaultShortcut: "Ctrl + X",
     customShortcut: "",
     category: "General Shortcuts",
-    status: true,
+    status: false,
     systemAction: "cut"
   },
   {
@@ -61,7 +61,7 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     defaultShortcut: "Ctrl + V",
     customShortcut: "",
     category: "General Shortcuts",
-    status: true,
+    status: false,
     systemAction: "paste"
   },
   {
@@ -70,7 +70,7 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     defaultShortcut: "Ctrl + Z",
     customShortcut: "",
     category: "General Shortcuts",
-    status: true,
+    status: false,
     systemAction: "undo"
   },
   {
@@ -79,7 +79,7 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     defaultShortcut: "Ctrl + Y",
     customShortcut: "",
     category: "General Shortcuts",
-    status: true,
+    status: false,
     systemAction: "redo"
   },
   {
@@ -88,7 +88,7 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     defaultShortcut: "Alt + Tab",
     customShortcut: "",
     category: "General Shortcuts",
-    status: true,
+    status: false,
     systemAction: "switch_apps"
   },
   {
@@ -97,7 +97,7 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     defaultShortcut: "Alt + F4",
     customShortcut: "",
     category: "General Shortcuts",
-    status: true,
+    status: false,
     systemAction: "close_active_window"
   },
   {
@@ -106,7 +106,7 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     defaultShortcut: "F5",
     customShortcut: "",
     category: "General Shortcuts",
-    status: true,
+    status: false,
     systemAction: "refresh"
   },
   {
@@ -115,7 +115,7 @@ export const DEFAULT_KEY_SHORTCUTS: KeyShortcutItem[] = [
     defaultShortcut: "Win + Shift + S",
     customShortcut: "",
     category: "General Shortcuts",
-    status: true,
+    status: false,
     systemAction: "take_screenshot"
   }
 ]
