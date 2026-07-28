@@ -122,14 +122,14 @@ export const TargetShortcuts: React.FC = () => {
           items = DEFAULT_KEY_SHORTCUTS.map(def => {
             const match = parsed.find((p: any) => p.action === def.action || p.id === def.id)
             return match
-              ? { ...def, customShortcut: match.customShortcut || "", status: match.status !== undefined ? match.status : true }
+              ? { ...def, customShortcut: match.customShortcut || "", status: match.status !== undefined ? match.status : false }
               : def
           })
         }
       }
-      return items.filter(s => s.status !== false)
+      return items.filter(s => s.status === true)
     } catch {
-      return DEFAULT_KEY_SHORTCUTS.filter(s => s.status !== false)
+      return DEFAULT_KEY_SHORTCUTS.filter(s => s.status === true)
     }
   }, [])
 
