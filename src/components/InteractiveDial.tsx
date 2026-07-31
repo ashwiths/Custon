@@ -2,7 +2,8 @@ import * as React from "react"
 
 export const InteractiveDial: React.FC = () => {
   const dialRef = React.useRef<HTMLDivElement>(null)
-  const [angle, setAngle] = React.useState(0)
+  const pointerHandRef = React.useRef<HTMLDivElement>(null)
+  const pointerGlowRef = React.useRef<HTMLDivElement>(null)
   const [isHovered, setIsHovered] = React.useState(false)
 
   React.useEffect(() => {
@@ -25,7 +26,7 @@ export const InteractiveDial: React.FC = () => {
       const degrees = radians * (180 / Math.PI)
       
       // Calculate shortest angular difference (unwrap angle) to prevent 360° flip glitches
-      let diff = (degrees - (targetAngle % 360) + 540) % 360 - 180
+      const diff = (degrees - (targetAngle % 360) + 540) % 360 - 180
       targetAngle += diff
       lastMouseMoveTime = Date.now()
     }
@@ -39,11 +40,18 @@ export const InteractiveDial: React.FC = () => {
 
       // Smooth 60fps linear interpolation (lerp) towards target angle
       currentAngle += (targetAngle - currentAngle) * 0.18
-      setAngle(currentAngle)
+
+      if (pointerHandRef.current) {
+        pointerHandRef.current.style.transform = `rotate(${currentAngle}deg)`
+      }
+      if (pointerGlowRef.current) {
+        pointerGlowRef.current.style.transform = `rotate(${currentAngle + 90}deg)`
+      }
+
       animFrameId = requestAnimationFrame(updateAnimation)
     }
 
-    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mousemove", handleMouseMove, { passive: true })
     animFrameId = requestAnimationFrame(updateAnimation)
 
     return () => {
@@ -75,18 +83,20 @@ export const InteractiveDial: React.FC = () => {
         
         {/* Rotating clock pointer/hand */}
         <div
+          ref={pointerHandRef}
           className="absolute w-[38%] h-0.5 left-1/2 origin-left bg-[#C98D74] rounded-full shadow-[0_0_6px_rgba(201,141,116,0.6)]"
           style={{
-            transform: `rotate(${angle}deg)`,
+            transform: "rotate(0deg)",
             willChange: "transform"
           }}
         />
 
         {/* Dynamic visual trail/glow pointing towards the pointer */}
         <div
+          ref={pointerGlowRef}
           className="absolute inset-0 rounded-full opacity-25 pointer-events-none"
           style={{
-            transform: `rotate(${angle + 90}deg)`,
+            transform: "rotate(90deg)",
             background: "radial-gradient(circle at 50% 10%, rgba(201, 141, 116, 0.6) 0%, transparent 60%)",
             willChange: "transform"
           }}
@@ -105,3 +115,4 @@ export const InteractiveDial: React.FC = () => {
     </div>
   )
 }
+

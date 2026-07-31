@@ -16,6 +16,8 @@ export const AnimatedWelcomeHeader: React.FC = () => {
   React.useEffect(() => {
     if (!titleRef.current) return
 
+    let timeoutId: NodeJS.Timeout | undefined
+
     const currentText = TYPING_PHRASES[phraseIndex]
     titleRef.current.innerHTML = currentText
 
@@ -32,7 +34,7 @@ export const AnimatedWelcomeHeader: React.FC = () => {
       ease: "outQuad",
       onComplete: () => {
         // Pause on completed text, then rotate to next phrase after 4 seconds
-        const timeout = setTimeout(() => {
+        timeoutId = setTimeout(() => {
           // Fade out characters before switching phrase
           animate(split.chars, {
             opacity: [1, 0],
@@ -45,10 +47,12 @@ export const AnimatedWelcomeHeader: React.FC = () => {
             }
           })
         }, 4000)
-
-        return () => clearTimeout(timeout)
       }
     })
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+    }
   }, [phraseIndex])
 
   // Subtitle fade-in animation on initial render
