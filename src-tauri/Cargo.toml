@@ -38,5 +38,10 @@ codegen-units = 1
 lto = true
 opt-level = "s"
 strip = true
+debug = false
+rpath = false
+incremental = false
+overflow-checks = false
+
 
 
