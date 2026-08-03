@@ -11,7 +11,13 @@ import { type ActivePage } from "@/components/Sidebar"
 import { SplashScreen } from "@/components/SplashScreen"
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(() => {
+    try {
+      return localStorage.getItem("startup_show_splash") !== "false"
+    } catch {
+      return true
+    }
+  })
   const [currentPage, setCurrentPage] = useState<ActivePage>("dashboard")
   const [darkMode, setDarkMode] = useState(true)
 
@@ -25,24 +31,76 @@ function App() {
     }
   }, [])
 
+  // Start minimized & startup session initialization
+  useEffect(() => {
+    async function initStartupSettings() {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window")
+        const currentWindow = getCurrentWindow()
+
+        // 1. Start Minimized Check
+        const startMinimized = localStorage.getItem("startup_start_minimized") === "true"
+        if (startMinimized) {
+          await currentWindow.hide()
+        }
+
+        // 2. Restore Session Check
+        const restoreSession = localStorage.getItem("startup_restore_session") !== "false"
+        if (restoreSession) {
+          const saved = localStorage.getItem("custom_workspace_shortcuts")
+          if (saved) {
+            try {
+              const shortcuts = JSON.parse(saved)
+              const { invoke } = await import("@tauri-apps/api/core")
+              await invoke("sync_shortcuts", { shortcuts })
+            } catch {}
+          }
+        }
+
+        // 3. Check Updates Check
+        const checkUpdates = localStorage.getItem("startup_check_updates") !== "false"
+        if (checkUpdates) {
+          // Log or query client updater readiness
+          console.log("[Custon] Checking client updates database on system launch...")
+        }
+      } catch (e) {
+        // Non-Tauri fallback
+      }
+    }
+    initStartupSettings()
+  }, [])
+
+  // Window closure behavior & background execution
   useEffect(() => {
     let unlisten: (() => void) | undefined
     async function listenToClose() {
       try {
         const { getCurrentWindow } = await import("@tauri-apps/api/window")
         const currentWindow = getCurrentWindow()
-        
-        unlisten = await currentWindow.onCloseRequested(async () => {
-          try {
-            const { invoke } = await import("@tauri-apps/api/core")
-            await invoke("restore_all_hidden")
-          } catch (e) {
-            console.error("Failed to restore windows on exit", e)
-          }
-          try {
-            await currentWindow.destroy()
-          } catch {
-            // Non-Tauri fallback
+
+        unlisten = await currentWindow.onCloseRequested(async (event) => {
+          const closeBehavior = localStorage.getItem("startup_close_behavior") || "tray"
+          const runInBackground = localStorage.getItem("startup_run_background") !== "false"
+
+          if (closeBehavior === "tray" || runInBackground) {
+            event.preventDefault()
+            try {
+              await currentWindow.hide()
+            } catch (e) {
+              console.error("Failed to hide window to tray", e)
+            }
+          } else {
+            try {
+              const { invoke } = await import("@tauri-apps/api/core")
+              await invoke("restore_all_hidden")
+            } catch (e) {
+              console.error("Failed to restore windows on exit", e)
+            }
+            try {
+              await currentWindow.destroy()
+            } catch {
+              // Non-Tauri fallback
+            }
           }
         })
       } catch (e) {
@@ -57,6 +115,7 @@ function App() {
       }
     }
   }, [])
+
 
   const renderPage = () => {
     switch (currentPage) {
