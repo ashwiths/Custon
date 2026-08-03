@@ -1,4 +1,5 @@
 import * as React from "react"
+import { invoke } from "@tauri-apps/api/core"
 import { 
   Zap, 
   Trash2, 
@@ -145,7 +146,6 @@ export const TargetShortcuts: React.FC = () => {
 
   const syncWithBackend = async (items: ShortcutItem[]) => {
     try {
-      const { invoke } = await import("@tauri-apps/api/core")
       await invoke("sync_shortcuts", { shortcuts: items })
     } catch {
       // Non-tauri browser environment
@@ -155,7 +155,6 @@ export const TargetShortcuts: React.FC = () => {
   // Trigger Target Shortcut
   const triggerShortcutExecution = async (item: ShortcutItem) => {
     try {
-      const { invoke } = await import("@tauri-apps/api/core")
       if (item.isFullClose || item.apps.includes("all-apps")) {
         const result = await invoke<{ state: string; count: number }>("toggle_workspace")
         if (result.state === "hidden") {

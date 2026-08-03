@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react"
+import { invoke } from "@tauri-apps/api/core"
+import { getCurrentWindow } from "@tauri-apps/api/window"
 import { MainLayout } from "@/layouts/MainLayout"
 import { Dashboard } from "@/pages/Dashboard"
 import { TargetShortcuts } from "@/pages/TargetShortcuts"
@@ -35,7 +37,6 @@ function App() {
   useEffect(() => {
     async function initStartupSettings() {
       try {
-        const { getCurrentWindow } = await import("@tauri-apps/api/window")
         const currentWindow = getCurrentWindow()
 
         // 1. Start Minimized Check
@@ -47,12 +48,18 @@ function App() {
         // 2. Restore Session Check
         const restoreSession = localStorage.getItem("startup_restore_session") !== "false"
         if (restoreSession) {
-          const saved = localStorage.getItem("custom_workspace_shortcuts")
-          if (saved) {
+          const savedWorkspace = localStorage.getItem("custom_workspace_shortcuts")
+          if (savedWorkspace) {
             try {
-              const shortcuts = JSON.parse(saved)
-              const { invoke } = await import("@tauri-apps/api/core")
+              const shortcuts = JSON.parse(savedWorkspace)
               await invoke("sync_shortcuts", { shortcuts })
+            } catch {}
+          }
+          const savedAllKeys = localStorage.getItem("custom_all_key_shortcuts")
+          if (savedAllKeys) {
+            try {
+              const shortcuts = JSON.parse(savedAllKeys)
+              await invoke("sync_all_key_shortcuts", { shortcuts })
             } catch {}
           }
         }
@@ -75,7 +82,6 @@ function App() {
     let unlisten: (() => void) | undefined
     async function listenToClose() {
       try {
-        const { getCurrentWindow } = await import("@tauri-apps/api/window")
         const currentWindow = getCurrentWindow()
 
         unlisten = await currentWindow.onCloseRequested(async (event) => {
@@ -91,7 +97,6 @@ function App() {
             }
           } else {
             try {
-              const { invoke } = await import("@tauri-apps/api/core")
               await invoke("restore_all_hidden")
             } catch (e) {
               console.error("Failed to restore windows on exit", e)
@@ -140,9 +145,7 @@ function App() {
                 }
                 const updated = [newShortcut, ...existing]
                 localStorage.setItem("custom_workspace_shortcuts", JSON.stringify(updated))
-                import("@tauri-apps/api/core").then(({ invoke }) => {
-                  invoke("sync_shortcuts", { shortcuts: updated }).catch(() => {})
-                })
+                invoke("sync_shortcuts", { shortcuts: updated }).catch(() => {})
               } catch {}
               setCurrentPage("target-shortcuts")
             }}

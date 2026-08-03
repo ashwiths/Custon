@@ -3,9 +3,8 @@ use std::collections::HashMap;
 use windows_sys::Win32::Foundation::{CloseHandle, BOOL, HWND, LPARAM, RECT};
 use windows_sys::Win32::Graphics::Gdi::{MonitorFromWindow, MONITOR_DEFAULTTONEAREST};
 use windows_sys::Win32::System::Threading::{
-    AttachThreadInput, GetCurrentThreadId, OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ,
+    OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ,
 };
-use windows_sys::Win32::UI::Input::KeyboardAndMouse::SetFocus;
 use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
 use crate::common::models::{RunningAppInfo, ToggleState, WindowSnapshot, WorkspaceState};
@@ -140,7 +139,6 @@ unsafe extern "system" fn enum_windows_callback(hwnd: HWND, lparam: LPARAM) -> B
         || class_name == "WorkerW"
         || class_name == "Shell_TrayWnd"
         || class_name == "Shell_SecondaryTrayWnd"
-        || class_name == "Windows.UI.Core.CoreWindow"
         || class_name == "MultitaskingViewFrame"
         || class_name == "SideBar_HiddenWindow"
         || class_name == "IME"
@@ -150,13 +148,20 @@ unsafe extern "system" fn enum_windows_callback(hwnd: HWND, lparam: LPARAM) -> B
         return 1;
     }
 
-    // 3. Extended style filtering (Tool windows vs App windows)
+    // 3. Ignore Custon's own process window
+    let mut pid: u32 = 0;
+    GetWindowThreadProcessId(hwnd, &mut pid);
+    if pid == std::process::id() {
+        return 1;
+    }
+
+    // 4. Extended style filtering (Tool windows vs App windows)
     let ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE) as u32;
     if (ex_style & WS_EX_TOOLWINDOW != 0) && (ex_style & WS_EX_APPWINDOW == 0) {
         return 1;
     }
 
-    // 4. Ignore zero-size or offscreen utility windows
+    // 5. Ignore zero-size or offscreen utility windows
     let mut rect: RECT = mem::zeroed();
     if GetWindowRect(hwnd, &mut rect) == 0 {
         return 1;
@@ -167,15 +172,12 @@ unsafe extern "system" fn enum_windows_callback(hwnd: HWND, lparam: LPARAM) -> B
         return 1;
     }
 
-    // 5. Window Title
+    // 6. Window Title
     let mut title_buf = [0u16; 512];
     let title_len = GetWindowTextW(hwnd, title_buf.as_mut_ptr(), 512);
     let title = String::from_utf16_lossy(&title_buf[..title_len as usize]);
 
-    // 6. Capture Window Placement and Monitor
-    let mut pid: u32 = 0;
-    GetWindowThreadProcessId(hwnd, &mut pid);
-
+    // 7. Capture Window Placement and Monitor
     let mut placement: WINDOWPLACEMENT = mem::zeroed();
     placement.length = mem::size_of::<WINDOWPLACEMENT>() as u32;
     if GetWindowPlacement(hwnd, &mut placement) == 0 {
@@ -219,27 +221,8 @@ pub unsafe fn focus_and_activate_window(hwnd: HWND, placement: &WINDOWPLACEMENT,
         ShowWindowAsync(hwnd, SW_SHOW as i32);
     }
 
-    let fg_hwnd = GetForegroundWindow();
-    if fg_hwnd != 0 && fg_hwnd != hwnd {
-        let fg_thread_id = GetWindowThreadProcessId(fg_hwnd, std::ptr::null_mut());
-        let cur_thread_id = GetCurrentThreadId();
-        
-        if fg_thread_id != cur_thread_id && fg_thread_id != 0 {
-            AttachThreadInput(cur_thread_id, fg_thread_id, 1);
-            BringWindowToTop(hwnd);
-            SetForegroundWindow(hwnd);
-            SetFocus(hwnd);
-            AttachThreadInput(cur_thread_id, fg_thread_id, 0);
-        } else {
-            BringWindowToTop(hwnd);
-            SetForegroundWindow(hwnd);
-            SetFocus(hwnd);
-        }
-    } else {
-        BringWindowToTop(hwnd);
-        SetForegroundWindow(hwnd);
-        SetFocus(hwnd);
-    }
+    BringWindowToTop(hwnd);
+    SetForegroundWindow(hwnd);
 }
 
 pub struct WindowsWindowManager;
@@ -374,21 +357,33 @@ impl PlatformWindowManager for WindowsWindowManager {
         } else {
             let mut shortcut_windows = state.shortcut_windows.lock().unwrap();
             if let Some(saved_snapshots) = shortcut_windows.remove(shortcut_id) {
-                // Apps were hidden by Custon -> Restore & Focus them!
+                // Apps were hidden by Custon -> Restore & Focus them atomically!
                 let count = saved_snapshots.len();
-                for snapshot in saved_snapshots.iter().rev() {
-                    unsafe {
-                        SetWindowPlacement(snapshot.hwnd, &snapshot.placement);
-                        SetWindowPos(
-                            snapshot.hwnd,
-                            HWND_TOP,
-                            snapshot.rect.left,
-                            snapshot.rect.top,
-                            snapshot.rect.right - snapshot.rect.left,
-                            snapshot.rect.bottom - snapshot.rect.top,
-                            SWP_SHOWWINDOW,
-                        );
-                        focus_and_activate_window(snapshot.hwnd, &snapshot.placement, snapshot.was_maximized);
+                let top_snapshot = saved_snapshots.first().cloned();
+                unsafe {
+                    let mut hdwp = BeginDeferWindowPos(count as i32);
+                    for snapshot in saved_snapshots.iter().rev() {
+                        if IsWindow(snapshot.hwnd) != 0 {
+                            SetWindowPlacement(snapshot.hwnd, &snapshot.placement);
+                            if hdwp != 0 {
+                                hdwp = DeferWindowPos(
+                                    hdwp,
+                                    snapshot.hwnd,
+                                    HWND_TOP,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW,
+                                );
+                            }
+                        }
+                    }
+                    if hdwp != 0 {
+                        EndDeferWindowPos(hdwp);
+                    }
+                    if let Some(top) = top_snapshot {
+                        focus_and_activate_window(top.hwnd, &top.placement, top.was_maximized);
                     }
                 }
                 state.set_shortcut_state(shortcut_id, ToggleState::Visible);
@@ -460,39 +455,43 @@ impl PlatformWindowManager for WindowsWindowManager {
         let mut shortcut_states = state.shortcut_states.lock().unwrap();
         
         let keys_to_restore: Vec<String> = shortcut_windows.keys().cloned().collect();
-        let mut top_most_snapshot: Option<WindowSnapshot> = None;
+        let mut all_target_snapshots: Vec<WindowSnapshot> = Vec::new();
 
         for shortcut_id in keys_to_restore {
             if let Some(saved_snapshots) = shortcut_windows.remove(&shortcut_id) {
-                count += saved_snapshots.len();
-                if top_most_snapshot.is_none() && !saved_snapshots.is_empty() {
-                    top_most_snapshot = saved_snapshots.first().cloned();
-                }
-                for snapshot in saved_snapshots.iter().rev() {
-                    unsafe {
-                        if IsWindow(snapshot.hwnd) == 0 {
-                            continue;
-                        }
-
-                        SetWindowPlacement(snapshot.hwnd, &snapshot.placement);
-                        SetWindowPos(
-                            snapshot.hwnd,
-                            HWND_TOP,
-                            0,
-                            0,
-                            0,
-                            0,
-                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW,
-                        );
-                    }
-                }
+                all_target_snapshots.extend(saved_snapshots);
             }
             shortcut_states.insert(shortcut_id, ToggleState::Visible);
         }
 
-        if let Some(top) = top_most_snapshot {
+        if !all_target_snapshots.is_empty() {
+            count += all_target_snapshots.len();
+            let top_snapshot = all_target_snapshots.first().cloned();
             unsafe {
-                focus_and_activate_window(top.hwnd, &top.placement, top.was_maximized);
+                let mut hdwp = BeginDeferWindowPos(all_target_snapshots.len() as i32);
+                for snapshot in all_target_snapshots.iter().rev() {
+                    if IsWindow(snapshot.hwnd) != 0 {
+                        SetWindowPlacement(snapshot.hwnd, &snapshot.placement);
+                        if hdwp != 0 {
+                            hdwp = DeferWindowPos(
+                                hdwp,
+                                snapshot.hwnd,
+                                HWND_TOP,
+                                0,
+                                0,
+                                0,
+                                0,
+                                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW,
+                            );
+                        }
+                    }
+                }
+                if hdwp != 0 {
+                    EndDeferWindowPos(hdwp);
+                }
+                if let Some(top) = top_snapshot {
+                    focus_and_activate_window(top.hwnd, &top.placement, top.was_maximized);
+                }
             }
         }
 
@@ -572,31 +571,31 @@ impl WindowsWindowManager {
             return 0;
         }
 
-        // Topmost window is the first item in EnumWindows Z-order array
         let top_snapshot = saved.first().cloned();
 
-        // Restore bottom-to-top so higher Z-order windows stack cleanly on top
-        for snapshot in saved.iter().rev() {
-            unsafe {
-                if IsWindow(snapshot.hwnd) == 0 {
-                    continue;
+        unsafe {
+            let mut hdwp = BeginDeferWindowPos(count as i32);
+            for snapshot in saved.iter().rev() {
+                if IsWindow(snapshot.hwnd) != 0 {
+                    SetWindowPlacement(snapshot.hwnd, &snapshot.placement);
+                    if hdwp != 0 {
+                        hdwp = DeferWindowPos(
+                            hdwp,
+                            snapshot.hwnd,
+                            HWND_TOP,
+                            0,
+                            0,
+                            0,
+                            0,
+                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW,
+                        );
+                    }
                 }
-
-                SetWindowPlacement(snapshot.hwnd, &snapshot.placement);
-                SetWindowPos(
-                    snapshot.hwnd,
-                    HWND_TOP,
-                    0,
-                    0,
-                    0,
-                    0,
-                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW,
-                );
             }
-        }
-
-        if let Some(top) = top_snapshot {
-            unsafe {
+            if hdwp != 0 {
+                EndDeferWindowPos(hdwp);
+            }
+            if let Some(top) = top_snapshot {
                 focus_and_activate_window(top.hwnd, &top.placement, top.was_maximized);
             }
         }

@@ -1,4 +1,5 @@
 import * as React from "react"
+import { invoke } from "@tauri-apps/api/core"
 import { 
   Keyboard, 
   Search, 
@@ -125,7 +126,6 @@ export const CreateAppShortcut: React.FC<CreateAppShortcutProps> = ({ onBack, on
   const fetchRunningApps = React.useCallback(async () => {
     setIsLoadingApps(true)
     try {
-      const { invoke } = await import("@tauri-apps/api/core")
       const apps = await invoke<{ id: string; name: string; desc: string; exe_name: string }[]>("get_running_apps")
       
       const standardApps = [

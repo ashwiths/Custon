@@ -1,4 +1,6 @@
 import * as React from "react"
+import { invoke } from "@tauri-apps/api/core"
+import { listen } from "@tauri-apps/api/event"
 import { 
   Keyboard, 
   Plus, 
@@ -157,15 +159,12 @@ export const Dashboard: React.FC = () => {
       // Ignore
     }
 
-    import("@tauri-apps/api/core").then(({ invoke }) => {
-      invoke("sync_shortcuts", { shortcuts }).catch(() => {})
-    }).catch(() => {})
+    invoke("sync_shortcuts", { shortcuts }).catch(() => {})
   }, [shortcuts])
 
   // Trigger Target App Shortcut Execution
   const triggerShortcutExecution = async (item: ShortcutItem) => {
     try {
-      const { invoke } = await import("@tauri-apps/api/core")
       if (item.isFullClose || item.apps.includes("all-apps")) {
         const result = await invoke<{ state: string; count: number }>("toggle_workspace")
         if (result.state === "hidden") {
@@ -206,8 +205,6 @@ export const Dashboard: React.FC = () => {
 
     async function listenToNativeEvents() {
       try {
-        const { listen } = await import("@tauri-apps/api/event")
-
         unlistenShortcut = await listen<{ name?: string; state: string; count: number; mode?: string }>("shortcut-trigger-event", (event) => {
           const { name, state, mode } = event.payload
           const displayName = name || "Target Shortcut"

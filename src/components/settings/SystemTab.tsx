@@ -1,4 +1,5 @@
 import * as React from "react"
+import { invoke } from "@tauri-apps/api/core"
 import { RefreshCw, Trash2, HelpCircle } from "lucide-react"
 
 interface SystemTabProps {
@@ -10,7 +11,6 @@ export const SystemTab: React.FC<SystemTabProps> = ({ setDarkMode }) => {
 
   const handleRestoreAllHidden = async () => {
     try {
-      const { invoke } = await import("@tauri-apps/api/core")
       const count = await invoke<number>("restore_all_hidden")
       setFeedback(`✓ Restored ${count} hidden window(s) successfully.`)
       setTimeout(() => setFeedback(null), 3000)
@@ -24,9 +24,7 @@ export const SystemTab: React.FC<SystemTabProps> = ({ setDarkMode }) => {
     if (window.confirm("Are you sure you want to delete all settings, hotkeys, and active target shortcuts? This action is permanent and cannot be undone.")) {
       localStorage.clear()
       try {
-        import("@tauri-apps/api/core").then(async ({ invoke }) => {
-          await invoke("set_autostart", { enable: false })
-        }).catch(() => {})
+        invoke("set_autostart", { enable: false }).catch(() => {})
       } catch {
         // Ignore
       }

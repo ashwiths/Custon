@@ -107,6 +107,16 @@ impl WindowsShortcutManager {
         unsafe {
             let mut inputs: Vec<INPUT> = Vec::new();
 
+            // Release any physically held modifier keys (Alt, Ctrl, Shift, Win) so they don't corrupt the combo
+            let physical_mods = [VK_MENU, VK_CONTROL, VK_SHIFT, VK_LWIN, VK_RWIN];
+            for &pm in &physical_mods {
+                let mut input_release: INPUT = std::mem::zeroed();
+                input_release.r#type = INPUT_KEYBOARD;
+                input_release.Anonymous.ki.wVk = pm;
+                input_release.Anonymous.ki.dwFlags = KEYEVENTF_KEYUP;
+                inputs.push(input_release);
+            }
+
             for &m in modifier_vks {
                 let mut input: INPUT = std::mem::zeroed();
                 input.r#type = INPUT_KEYBOARD;
@@ -272,12 +282,10 @@ impl PlatformShortcutManager for WindowsShortcutManager {
                     if !cfg.status {
                         continue;
                     }
-                    let combo = if !cfg.custom_shortcut.trim().is_empty() {
-                        &cfg.custom_shortcut
-                    } else {
-                        &cfg.default_shortcut
-                    };
-                    if combo.trim().is_empty() {
+                    // Only register a global hotkey if a custom_shortcut is specified!
+                    // Do NOT hijack system default shortcuts like Ctrl+C, Ctrl+V, Ctrl+A, Alt+Tab!
+                    let combo = cfg.custom_shortcut.trim();
+                    if combo.is_empty() {
                         continue;
                     }
 
@@ -287,17 +295,20 @@ impl PlatformShortcutManager for WindowsShortcutManager {
                         let ok = unsafe { RegisterHotKey(0, hotkey_id, modifiers, vk_code) };
                         if ok != 0 {
                             map.insert(hotkey_id, cfg.clone());
+                        } else {
+                            eprintln!("[Hotkeys] Failed to register custom all-key hotkey: {} (id {})", combo, hotkey_id);
                         }
                     }
                 }
             };
 
-            register_configs(&initial_shortcuts, &mut registered_map);
-
+            // Force creation of Win32 message queue for this thread BEFORE registering hotkeys
             let mut msg: MSG = unsafe { std::mem::zeroed() };
             unsafe {
                 PeekMessageW(&mut msg, 0, 0, 0, PM_NOREMOVE);
             }
+
+            register_configs(&initial_shortcuts, &mut registered_map);
 
             loop {
                 let res = unsafe { GetMessageW(&mut msg, 0, 0, 0) };

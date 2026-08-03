@@ -1,5 +1,6 @@
 import * as React from "react"
 import * as ReactDOM from "react-dom"
+import { invoke } from "@tauri-apps/api/core"
 import { 
   ArrowLeft, 
   Search, 
@@ -88,7 +89,6 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
     }
 
     try {
-      const { invoke } = await import("@tauri-apps/api/core")
       await invoke("sync_all_key_shortcuts", { shortcuts: items })
     } catch {
       // Browser fallback
