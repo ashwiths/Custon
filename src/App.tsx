@@ -11,6 +11,7 @@ import { Settings } from "@/pages/Settings"
 import { HelpPage } from "@/pages/Help"
 import { type ActivePage } from "@/components/Sidebar"
 import { SplashScreen } from "@/components/SplashScreen"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 
 function App() {
   const [isLoading, setIsLoading] = useState(() => {
@@ -69,6 +70,14 @@ function App() {
         if (checkUpdates) {
           // Log or query client updater readiness
           console.log("[Custon] Checking client updates database on system launch...")
+        }
+
+        // 4. Windows Startup / Autostart Registry Sync
+        const startAtLogin = localStorage.getItem("startup_start_at_login") !== "false"
+        try {
+          await invoke("set_autostart", { enable: startAtLogin })
+        } catch (err) {
+          console.warn("[Custon] Registry autostart sync skipped:", err)
         }
       } catch (e) {
         // Non-Tauri fallback
@@ -185,7 +194,9 @@ function App() {
         darkMode={darkMode}
         setDarkMode={setDarkMode}
       >
-        {renderPage()}
+        <ErrorBoundary>
+          {renderPage()}
+        </ErrorBoundary>
       </MainLayout>
     </>
   )

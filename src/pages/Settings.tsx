@@ -12,16 +12,15 @@ import {
   CheckCircle
 } from "lucide-react"
 
-// Lazy-loaded modular settings tab panels for optimal startup performance & bundle splitting
-const HotkeysTab = React.lazy(() => import("@/components/settings/HotkeysTab").then(m => ({ default: m.HotkeysTab })))
-const SecurityTab = React.lazy(() => import("@/components/settings/SecurityTab").then(m => ({ default: m.SecurityTab })))
-const StartupTab = React.lazy(() => import("@/components/settings/StartupTab").then(m => ({ default: m.StartupTab })))
-const WorkspaceTab = React.lazy(() => import("@/components/settings/WorkspaceTab").then(m => ({ default: m.WorkspaceTab })))
-const DiagnosticsTab = React.lazy(() => import("@/components/settings/DiagnosticsTab").then(m => ({ default: m.DiagnosticsTab })))
-const SystemTab = React.lazy(() => import("@/components/settings/SystemTab").then(m => ({ default: m.SystemTab })))
-const StatisticsTab = React.lazy(() => import("@/components/settings/StatisticsTab").then(m => ({ default: m.StatisticsTab })))
-const SyncTab = React.lazy(() => import("@/components/settings/SyncTab").then(m => ({ default: m.SyncTab })))
-const ExperimentalTab = React.lazy(() => import("@/components/settings/ExperimentalTab").then(m => ({ default: m.ExperimentalTab })))
+import { HotkeysTab } from "@/components/settings/HotkeysTab"
+import { SecurityTab } from "@/components/settings/SecurityTab"
+import { StartupTab } from "@/components/settings/StartupTab"
+import { WorkspaceTab } from "@/components/settings/WorkspaceTab"
+import { DiagnosticsTab } from "@/components/settings/DiagnosticsTab"
+import { SystemTab } from "@/components/settings/SystemTab"
+import { StatisticsTab } from "@/components/settings/StatisticsTab"
+import { SyncTab } from "@/components/settings/SyncTab"
+import { ExperimentalTab } from "@/components/settings/ExperimentalTab"
 
 interface SettingsProps {
   darkMode?: boolean
@@ -113,9 +112,7 @@ export const Settings: React.FC<SettingsProps> = ({ setDarkMode, onBack }) => {
         {/* Right Tab Content Pane (8 cols) */}
         <div className="md:col-span-8 bg-black/20 dark:bg-black/10 p-6 rounded-2xl border border-white/5 flex flex-col overflow-y-auto h-full min-h-0 scrollbar-thin relative">
           <div className={`w-full h-full flex flex-col justify-between ${isComingSoon ? "blur-md select-none pointer-events-none" : ""}`}>
-            <React.Suspense fallback={<div className="p-8 text-center text-xs font-bold text-[#9B8179] animate-pulse">Loading tab settings...</div>}>
-              {activeTabObj.component}
-            </React.Suspense>
+            {activeTabObj.component}
           </div>
           {isComingSoon && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 rounded-2xl">

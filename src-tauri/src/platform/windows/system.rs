@@ -2,8 +2,12 @@ use std::env;
 use windows_sys::Win32::System::Registry::*;
 use crate::platform::PlatformSystemManager;
 
-const REG_KEY_PATH: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Run\0";
-const APP_NAME: &str = "Custon\0";
+const REG_KEY_PATH: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+const APP_NAME: &str = "Custon";
+
+fn to_pcwstr(s: &str) -> Vec<u16> {
+    s.encode_utf16().chain(std::iter::once(0)).collect()
+}
 
 pub struct WindowsSystemManager;
 
@@ -15,8 +19,8 @@ impl PlatformSystemManager for WindowsSystemManager {
     fn set_autostart(&self, enable: bool) -> Result<bool, String> {
         let mut hkey: HKEY = 0;
 
-        let path_utf16: Vec<u16> = REG_KEY_PATH.encode_utf16().collect();
-        let app_name_utf16: Vec<u16> = APP_NAME.encode_utf16().collect();
+        let path_utf16 = to_pcwstr(REG_KEY_PATH);
+        let app_name_utf16 = to_pcwstr(APP_NAME);
 
         unsafe {
             let status = RegOpenKeyExW(
@@ -33,10 +37,8 @@ impl PlatformSystemManager for WindowsSystemManager {
 
             if enable {
                 let exe_path = env::current_exe().map_err(|e| e.to_string())?;
-                let mut exe_str = exe_path.to_string_lossy().to_string();
-                exe_str = format!("\"{}\"", exe_str);
-                let mut exe_utf16: Vec<u16> = exe_str.encode_utf16().collect();
-                exe_utf16.push(0);
+                let exe_str = format!("\"{}\"", exe_path.to_string_lossy());
+                let exe_utf16 = to_pcwstr(&exe_str);
 
                 let set_status = RegSetValueExW(
                     hkey,
@@ -68,8 +70,8 @@ impl PlatformSystemManager for WindowsSystemManager {
 
     fn is_autostart_enabled(&self) -> bool {
         let mut hkey: HKEY = 0;
-        let path_utf16: Vec<u16> = REG_KEY_PATH.encode_utf16().collect();
-        let app_name_utf16: Vec<u16> = APP_NAME.encode_utf16().collect();
+        let path_utf16 = to_pcwstr(REG_KEY_PATH);
+        let app_name_utf16 = to_pcwstr(APP_NAME);
 
         unsafe {
             let status = RegOpenKeyExW(

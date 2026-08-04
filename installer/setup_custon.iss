@@ -3,11 +3,11 @@
 ; Build standalone setup executable with customizable installation options
 ; ============================================================================
 
-#define MyAppName "Custun"
+#define MyAppName "Custon"
 #define MyAppVersion "0.1.0"
-#define MyAppPublisher "Custun Inc."
+#define MyAppPublisher "Custon Inc."
 #define MyAppURL "https://custon.app"
-#define MyAppExeName "Custun.exe"
+#define MyAppExeName "Custon.exe"
 
 [Setup]
 ; Basic Setup Info
@@ -28,7 +28,7 @@ AllowNoIcons=yes
 
 ; Output Configuration
 OutputDir=..\dist_installer
-OutputBaseFilename=Custun_Setup_v0.1.0
+OutputBaseFilename=Custon_Setup_v0.1.0
 SetupIconFile=..\src-tauri\icons\icon.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -53,7 +53,7 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Registry]
 ; Run on Windows startup option
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Custun"; ValueData: """{app}\{#MyAppExeName}"""; Flags: uninsvalue; Tasks: autostart
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Custon"; ValueData: """{app}\{#MyAppExeName}"""; Flags: uninsvalue; Tasks: autostart
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
