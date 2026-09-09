@@ -8,6 +8,7 @@ import {
   XCircle
 } from "lucide-react"
 import { checkShortcutConflict } from "@/utils/shortcutConflict"
+import { loadSavedShortcuts, persistShortcuts } from "@/utils/shortcutStorage"
 
 interface CreateFullCloseProps {
   onBack: () => void
@@ -97,18 +98,18 @@ export const CreateFullClose: React.FC<CreateFullCloseProps> = ({ onBack, onSave
         status: "Enabled",
         lastUsed: "Just now",
         isFullClose: true,
-        executionMode: "stealth"
+        executionMode: "stealth" as const
       }
-      const saved = localStorage.getItem("custom_workspace_shortcuts")
-      const existing = saved ? JSON.parse(saved) : []
+      const existing = await loadSavedShortcuts()
       const filtered = existing.filter((s: any) => s.id !== "full-close-master" && !s.isFullClose)
       const updated = [fullCloseItem, ...filtered]
-      localStorage.setItem("custom_workspace_shortcuts", JSON.stringify(updated))
-      localStorage.setItem("custom_full_close_shortcut", JSON.stringify(keys))
+      await persistShortcuts(updated)
 
-      const { invoke } = await import("@tauri-apps/api/core")
-      await invoke("set_workspace_hotkey", { keyCombo: keys.join(" + ") })
-      await invoke("sync_shortcuts", { shortcuts: updated })
+      try {
+        localStorage.setItem("custom_full_close_shortcut", JSON.stringify(keys))
+        const { invoke } = await import("@tauri-apps/api/core")
+        await invoke("set_workspace_hotkey", { keyCombo: keys.join(" + ") })
+      } catch {}
     } catch {
       // Browser environment guard
     }

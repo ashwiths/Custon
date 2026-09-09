@@ -1,6 +1,5 @@
 import * as React from "react"
 import * as ReactDOM from "react-dom"
-import { invoke } from "@tauri-apps/api/core"
 import { 
   ArrowLeft, 
   Search, 
@@ -32,6 +31,7 @@ import {
   COMMON_CONFLICT_SHORTCUTS 
 } from "@/types/allKeysShortcuts"
 import { checkShortcutConflict, normalizeCombo } from "@/utils/shortcutConflict"
+import { loadSavedAllKeys, persistAllKeys } from "@/utils/shortcutStorage"
 
 interface CustomizeAllKeysProps {
   onBack: () => void
@@ -51,10 +51,12 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
       if (saved) {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return DEFAULT_KEY_SHORTCUTS.map(def => {
+          const matched = DEFAULT_KEY_SHORTCUTS.map(def => {
             const match = parsed.find((p: KeyShortcutItem) => p.action === def.action || p.id === def.id)
             return match ? { ...def, customShortcut: match.customShortcut || "", status: match.status !== undefined ? match.status : false } : def
           })
+          const customAdded = parsed.filter((p: KeyShortcutItem) => !DEFAULT_KEY_SHORTCUTS.some(d => d.id === p.id || d.action === p.action))
+          return [...matched, ...customAdded]
         }
       }
     } catch {
@@ -62,6 +64,20 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
     }
     return DEFAULT_KEY_SHORTCUTS
   })
+
+  // Load authoritative all-key shortcuts from persistent backend storage on mount
+  React.useEffect(() => {
+    loadSavedAllKeys().then(items => {
+      if (Array.isArray(items) && items.length > 0) {
+        const matched = DEFAULT_KEY_SHORTCUTS.map(def => {
+          const match = items.find((p: KeyShortcutItem) => p.action === def.action || p.id === def.id)
+          return match ? { ...def, customShortcut: match.customShortcut || "", status: match.status !== undefined ? match.status : false } : def
+        })
+        const customAdded = items.filter((p: KeyShortcutItem) => !DEFAULT_KEY_SHORTCUTS.some(d => d.id === p.id || d.action === p.action))
+        setShortcuts([...matched, ...customAdded])
+      }
+    })
+  }, [])
 
   const [activeCategory, setActiveCategory] = React.useState<ShortcutCategory>("All Shortcuts")
   const [searchQuery, setSearchQuery] = React.useState("")
@@ -82,22 +98,8 @@ export const CustomizeAllKeys: React.FC<CustomizeAllKeysProps> = ({ onBack }) =>
   const [conflictName, setConflictName] = React.useState<string>("")
 
   const syncWithBackend = async (items: KeyShortcutItem[]) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-    } catch {
-      // Ignore
-    }
-
-    try {
-      await invoke("sync_all_key_shortcuts", { shortcuts: items })
-    } catch {
-      // Browser fallback
-    }
+    await persistAllKeys(items)
   }
-
-  React.useEffect(() => {
-    syncWithBackend(shortcuts)
-  }, [])
 
   const showToast = (msg: string) => {
     setToastMessage(msg)

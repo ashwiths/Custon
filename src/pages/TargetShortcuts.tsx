@@ -83,9 +83,11 @@ const getAppIcon = (appId: string) => {
   }
 }
 
-const STORAGE_KEY = "custom_workspace_shortcuts"
-
-const DEFAULT_SHORTCUTS: ShortcutItem[] = []
+import { 
+  getCachedShortcuts, 
+  loadSavedShortcuts, 
+  persistShortcuts 
+} from "@/utils/shortcutStorage"
 
 type ViewMode = "list" | "create-app-shortcut" | "create-full-close"
 
@@ -96,21 +98,25 @@ export const TargetShortcuts: React.FC = () => {
   const [actionToast, setActionToast] = React.useState<string | null>(null)
   const [searchQuery, setSearchQuery] = React.useState("")
 
-  const [shortcuts, setShortcuts] = React.useState<ShortcutItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed)) {
-          // Filter out dummy initial sample shortcuts
-          return parsed.filter(item => item.id !== "1" && item.id !== "2")
-        }
+  const [shortcuts, setShortcuts] = React.useState<ShortcutItem[]>(() => getCachedShortcuts())
+
+  // Load authoritative shortcuts from disk storage on mount and subscribe to updates
+  React.useEffect(() => {
+    loadSavedShortcuts().then((items) => {
+      if (Array.isArray(items)) {
+        setShortcuts(items)
       }
-    } catch {
-      // Fallback
+    })
+
+    const handleShortcutsUpdated = (e: Event) => {
+      const customEvt = e as CustomEvent<ShortcutItem[]>
+      if (customEvt.detail && Array.isArray(customEvt.detail)) {
+        setShortcuts(customEvt.detail)
+      }
     }
-    return DEFAULT_SHORTCUTS
-  })
+    window.addEventListener("custon-shortcuts-updated", handleShortcutsUpdated)
+    return () => window.removeEventListener("custon-shortcuts-updated", handleShortcutsUpdated)
+  }, [])
 
   // Read active system & all-key shortcuts from localStorage
   const activeGeneralSystemKeys = React.useMemo(() => {
@@ -133,24 +139,6 @@ export const TargetShortcuts: React.FC = () => {
       return DEFAULT_KEY_SHORTCUTS.filter(s => s.status === true)
     }
   }, [])
-
-  // Save shortcuts to localStorage and update Win32 backend
-  React.useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(shortcuts))
-      syncWithBackend(shortcuts)
-    } catch {
-      // Ignore
-    }
-  }, [shortcuts])
-
-  const syncWithBackend = async (items: ShortcutItem[]) => {
-    try {
-      await invoke("sync_shortcuts", { shortcuts: items })
-    } catch {
-      // Non-tauri browser environment
-    }
-  }
 
   // Trigger Target Shortcut
   const triggerShortcutExecution = async (item: ShortcutItem) => {
@@ -190,7 +178,9 @@ export const TargetShortcuts: React.FC = () => {
 
   const confirmDeleteShortcut = () => {
     if (deleteTarget) {
-      setShortcuts(shortcuts.filter(s => s.id !== deleteTarget.id))
+      const updated = shortcuts.filter(s => s.id !== deleteTarget.id)
+      setShortcuts(updated)
+      persistShortcuts(updated)
       setActionToast(`✓ Deleted shortcut (${deleteTarget.name})`)
       setTimeout(() => setActionToast(null), 2000)
       setDeleteTarget(null)
@@ -218,15 +208,16 @@ export const TargetShortcuts: React.FC = () => {
       ? shortcutName.trim()
       : appsToUse.map(getFormattedAppName).join(" • ")
 
+    let updated: ShortcutItem[]
     if (editingShortcutId) {
-      setShortcuts(shortcuts.map(s => s.id === editingShortcutId ? {
+      updated = shortcuts.map(s => s.id === editingShortcutId ? {
         ...s,
         name: generatedName,
         apps: appsToUse,
         keys,
         executionMode: (mode as "stealth" | "close") || "stealth",
         lastUsed: "Just now"
-      } : s))
+      } : s)
       setEditingShortcutId(null)
     } else {
       const newShortcut: ShortcutItem = {
@@ -238,19 +229,22 @@ export const TargetShortcuts: React.FC = () => {
         lastUsed: "Just now",
         executionMode: (mode as "stealth" | "close") || "stealth"
       }
-      setShortcuts([newShortcut, ...shortcuts])
+      updated = [newShortcut, ...shortcuts]
     }
+    setShortcuts(updated)
+    persistShortcuts(updated)
     setViewMode("list")
   }
 
   // Save Full Close Shortcut handler
   const handleSaveFullCloseShortcut = (keys: string[]) => {
+    let updated: ShortcutItem[]
     if (editingShortcutId) {
-      setShortcuts(shortcuts.map(s => s.id === editingShortcutId ? {
+      updated = shortcuts.map(s => s.id === editingShortcutId ? {
         ...s,
         keys,
         lastUsed: "Just now"
-      } : s))
+      } : s)
       setEditingShortcutId(null)
     } else {
       const newShortcut: ShortcutItem = {
@@ -263,8 +257,12 @@ export const TargetShortcuts: React.FC = () => {
         isFullClose: true,
         executionMode: "stealth"
       }
-      setShortcuts([newShortcut, ...shortcuts])
+      const filtered = shortcuts.filter(s => !s.isFullClose && s.id !== "full-close-master")
+      updated = [newShortcut, ...filtered]
     }
+    setShortcuts(updated)
+    persistShortcuts(updated)
+    invoke("set_workspace_hotkey", { keyCombo: keys.join(" + ") }).catch(() => {})
     setViewMode("list")
   }
 

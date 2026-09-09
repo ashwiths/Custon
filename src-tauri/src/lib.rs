@@ -41,24 +41,60 @@ pub fn run() {
                     .build(app)?;
             }
 
-            // Start the global hotkeys listener loop
-            hotkey_for_setup.start_listener(
-                app.handle().clone(),
-                state_for_setup,
+            // Load saved configuration directly from persistent disk storage
+            let config = match crate::common::storage::ConfigStorage::load_config(&app.handle()) {
+                Ok(cfg) => cfg,
+                Err(e) => {
+                    eprintln!("[Startup] Error loading config: {}, using defaults", e);
+                    crate::common::config::AppConfig::default()
+                }
+            };
+
+            // Ensure the config file exists on disk
+            let _ = crate::common::storage::ConfigStorage::save_config(&app.handle(), &config);
+
+            let initial_shortcuts = if !config.shortcuts.is_empty() {
+                config.shortcuts.clone()
+            } else {
                 vec![ShortcutConfig {
                     id: "2".to_string(),
                     name: "Close All Open Windows".to_string(),
                     apps: vec!["all-apps".to_string()],
                     keys: vec!["Ctrl".to_string(), "Alt".to_string(), "X".to_string()],
+                    status: Some("Enabled".to_string()),
+                    last_used: Some("Default".to_string()),
                     is_full_close: Some(true),
                     execution_mode: Some("stealth".to_string()),
-                }],
+                }]
+            };
+
+            // Start the global hotkeys listener loop with loaded shortcuts
+            hotkey_for_setup.start_listener(
+                app.handle().clone(),
+                state_for_setup,
+                initial_shortcuts,
             );
+
+            // Register all saved general key shortcuts
+            if !config.all_key_shortcuts.is_empty() {
+                hotkey_for_setup.sync_all_key_shortcuts(config.all_key_shortcuts);
+            }
+
+            // Set custom workspace hotkey if saved
+            if let Some(keys) = config.full_close_shortcut {
+                if !keys.is_empty() {
+                    hotkey_for_setup.update_hotkey(&keys.join(" + "));
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             commands::system::toggle_workspace,
             commands::system::toggle_target_shortcut,
+            commands::shortcut::get_saved_shortcuts,
+            commands::shortcut::get_saved_all_key_shortcuts,
+            commands::shortcut::get_saved_full_close_shortcut,
             commands::shortcut::sync_shortcuts,
             commands::shortcut::sync_all_key_shortcuts,
             commands::shortcut::set_workspace_hotkey,

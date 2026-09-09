@@ -433,6 +433,8 @@ impl PlatformShortcutManager for WindowsShortcutManager {
             name: "Close All Open Windows".to_string(),
             apps: vec!["all-apps".to_string()],
             keys: new_combo.split('+').map(|s| s.trim().to_string()).collect(),
+            status: Some("Enabled".to_string()),
+            last_used: Some("Just now".to_string()),
             is_full_close: Some(true),
             execution_mode: Some("stealth".to_string()),
         };

@@ -24,6 +24,8 @@ export const SystemTab: React.FC<SystemTabProps> = ({ setDarkMode }) => {
     if (window.confirm("Are you sure you want to delete all settings, hotkeys, and active target shortcuts? This action is permanent and cannot be undone.")) {
       localStorage.clear()
       try {
+        invoke("sync_shortcuts", { shortcuts: [] }).catch(() => {})
+        invoke("sync_all_key_shortcuts", { shortcuts: [] }).catch(() => {})
         invoke("set_autostart", { enable: false }).catch(() => {})
       } catch {
         // Ignore

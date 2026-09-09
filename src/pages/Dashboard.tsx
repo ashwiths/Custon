@@ -19,6 +19,11 @@ import { CreateFullClose } from "@/pages/CreateFullClose"
 import { CustomizeAllKeys } from "@/pages/CustomizeAllKeys"
 import { AnimatedWelcomeHeader } from "@/components/AnimatedWelcomeHeader"
 import { animate, splitText, stagger } from "animejs"
+import { 
+  getCachedShortcuts, 
+  loadSavedShortcuts, 
+  persistShortcuts 
+} from "@/utils/shortcutStorage"
 
 export interface ShortcutItem {
   id: string
@@ -33,13 +38,6 @@ export interface ShortcutItem {
 
 type ViewMode = "home" | "create-app-shortcut" | "create-full-close" | "customize-all-keys"
 type AutostartState = "prompt" | "warning" | "enabled" | "hidden"
-
-const STORAGE_KEY = "custom_workspace_shortcuts"
-
-const DEFAULT_SHORTCUTS: ShortcutItem[] = [
-  { id: "1", name: "Chrome • VS Code • Discord", apps: ["chrome", "vscode", "discord"], keys: ["Ctrl", "Shift", "Q"], status: "Enabled", lastUsed: "2 mins ago", executionMode: "stealth" },
-  { id: "2", name: "Close All Open Windows", apps: ["all-apps"], keys: ["Ctrl", "Alt", "X"], status: "Enabled", lastUsed: "5 mins ago", isFullClose: true },
-]
 
 export const Dashboard: React.FC = () => {
   const [viewMode, setViewMode] = React.useState<ViewMode>("home")
@@ -74,18 +72,25 @@ export const Dashboard: React.FC = () => {
     }
   }, [viewMode])
 
-  const [shortcuts, setShortcuts] = React.useState<ShortcutItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+  const [shortcuts, setShortcuts] = React.useState<ShortcutItem[]>(() => getCachedShortcuts())
+
+  // Load authoritative shortcuts from disk storage on mount and subscribe to updates
+  React.useEffect(() => {
+    loadSavedShortcuts().then((items) => {
+      if (Array.isArray(items)) {
+        setShortcuts(items)
       }
-    } catch {
-      // Fallback
+    })
+
+    const handleShortcutsUpdated = (e: Event) => {
+      const customEvt = e as CustomEvent<ShortcutItem[]>
+      if (customEvt.detail && Array.isArray(customEvt.detail)) {
+        setShortcuts(customEvt.detail)
+      }
     }
-    return DEFAULT_SHORTCUTS
-  })
+    window.addEventListener("custon-shortcuts-updated", handleShortcutsUpdated)
+    return () => window.removeEventListener("custon-shortcuts-updated", handleShortcutsUpdated)
+  }, [])
 
   const [actionToast, setActionToast] = React.useState<string | null>(null)
   const [isClosingAll, setIsClosingAll] = React.useState(false)
@@ -141,26 +146,6 @@ export const Dashboard: React.FC = () => {
     setAutostartState("warning")
     localStorage.setItem("autostart_permission_status", "denied")
   }
-
-  // const handleToggleTestAutostartBanner = () => {
-  //   if (autostartState === "prompt") {
-  //     handleDenyAutostart()
-  //   } else {
-  //     setAutostartState("prompt")
-  //     localStorage.removeItem("autostart_permission_status")
-  //   }
-  // }
-
-  // Save shortcuts to localStorage & sync hotkeys with Rust backend
-  React.useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(shortcuts))
-    } catch {
-      // Ignore
-    }
-
-    invoke("sync_shortcuts", { shortcuts }).catch(() => {})
-  }, [shortcuts])
 
   // Trigger Target App Shortcut Execution
   const triggerShortcutExecution = async (item: ShortcutItem) => {
@@ -274,7 +259,9 @@ export const Dashboard: React.FC = () => {
 
   const confirmDeleteShortcut = () => {
     if (deleteTarget) {
-      setShortcuts(shortcuts.filter(s => s.id !== deleteTarget.id))
+      const updated = shortcuts.filter(s => s.id !== deleteTarget.id)
+      setShortcuts(updated)
+      persistShortcuts(updated)
       setActionToast(`✓ Deleted shortcut (${deleteTarget.name})`)
       setTimeout(() => setActionToast(null), 2000)
       setDeleteTarget(null)
@@ -302,15 +289,16 @@ export const Dashboard: React.FC = () => {
       ? shortcutName.trim()
       : appsToUse.map(getFormattedAppName).join(" • ")
 
+    let updated: ShortcutItem[]
     if (editingShortcutId) {
-      setShortcuts(shortcuts.map(s => s.id === editingShortcutId ? {
+      updated = shortcuts.map(s => s.id === editingShortcutId ? {
         ...s,
         name: generatedName,
         apps: appsToUse,
         keys,
         executionMode: (mode as "stealth" | "close") || "stealth",
         lastUsed: "Just now"
-      } : s))
+      } : s)
       setEditingShortcutId(null)
     } else {
       const newShortcut: ShortcutItem = {
@@ -322,19 +310,22 @@ export const Dashboard: React.FC = () => {
         lastUsed: "Just now",
         executionMode: (mode as "stealth" | "close") || "stealth"
       }
-      setShortcuts([newShortcut, ...shortcuts])
+      updated = [newShortcut, ...shortcuts]
     }
+    setShortcuts(updated)
+    persistShortcuts(updated)
     setViewMode("home")
   }
 
   // Save Full Close Shortcut handler
   const handleSaveFullCloseShortcut = (keys: string[]) => {
+    let updated: ShortcutItem[]
     if (editingShortcutId) {
-      setShortcuts(shortcuts.map(s => s.id === editingShortcutId ? {
+      updated = shortcuts.map(s => s.id === editingShortcutId ? {
         ...s,
         keys,
         lastUsed: "Just now"
-      } : s))
+      } : s)
       setEditingShortcutId(null)
     } else {
       const newShortcut: ShortcutItem = {
@@ -347,9 +338,13 @@ export const Dashboard: React.FC = () => {
         isFullClose: true,
         executionMode: "stealth"
       }
-      setShortcuts([newShortcut, ...shortcuts])
+      const filtered = shortcuts.filter(s => !s.isFullClose && s.id !== "full-close-master")
+      updated = [newShortcut, ...filtered]
     }
 
+    setShortcuts(updated)
+    persistShortcuts(updated)
+    invoke("set_workspace_hotkey", { keyCombo: keys.join(" + ") }).catch(() => {})
     setViewMode("home")
   }
 

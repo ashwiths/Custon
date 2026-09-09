@@ -87,9 +87,13 @@ pub struct ShortcutConfig {
     pub name: String,
     pub apps: Vec<String>,
     pub keys: Vec<String>,
-    #[serde(rename = "isFullClose")]
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(rename = "lastUsed", default)]
+    pub last_used: Option<String>,
+    #[serde(rename = "isFullClose", default)]
     pub is_full_close: Option<bool>,
-    #[serde(rename = "executionMode")]
+    #[serde(rename = "executionMode", default)]
     pub execution_mode: Option<String>,
 }
 

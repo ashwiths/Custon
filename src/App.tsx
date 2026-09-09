@@ -12,6 +12,7 @@ import { HelpPage } from "@/pages/Help"
 import { type ActivePage } from "@/components/Sidebar"
 import { SplashScreen } from "@/components/SplashScreen"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
+import { loadSavedShortcuts, persistShortcuts, loadSavedAllKeys } from "@/utils/shortcutStorage"
 
 function App() {
   const [isLoading, setIsLoading] = useState(() => {
@@ -46,23 +47,12 @@ function App() {
           await currentWindow.hide()
         }
 
-        // 2. Restore Session Check
-        const restoreSession = localStorage.getItem("startup_restore_session") !== "false"
-        if (restoreSession) {
-          const savedWorkspace = localStorage.getItem("custom_workspace_shortcuts")
-          if (savedWorkspace) {
-            try {
-              const shortcuts = JSON.parse(savedWorkspace)
-              await invoke("sync_shortcuts", { shortcuts })
-            } catch {}
-          }
-          const savedAllKeys = localStorage.getItem("custom_all_key_shortcuts")
-          if (savedAllKeys) {
-            try {
-              const shortcuts = JSON.parse(savedAllKeys)
-              await invoke("sync_all_key_shortcuts", { shortcuts })
-            } catch {}
-          }
+        // 2. Restore Session & Sync Persistent Shortcuts
+        try {
+          await loadSavedShortcuts()
+          await loadSavedAllKeys()
+        } catch (e) {
+          console.warn("[Custon] Error loading persistent shortcuts on launch:", e)
         }
 
         // 3. Check Updates Check
@@ -139,10 +129,9 @@ function App() {
         return (
           <CreateAppShortcut
             onBack={() => setCurrentPage("dashboard")}
-            onSave={(shortcutName, selectedApps, keys, mode) => {
+            onSave={async (shortcutName, selectedApps, keys, mode) => {
               try {
-                const saved = localStorage.getItem("custom_workspace_shortcuts")
-                const existing = saved ? JSON.parse(saved) : []
+                const existing = await loadSavedShortcuts()
                 const newShortcut = {
                   id: Date.now().toString(),
                   name: shortcutName.trim() || selectedApps.join(" • "),
@@ -150,11 +139,10 @@ function App() {
                   keys,
                   status: "Enabled",
                   lastUsed: "Just now",
-                  executionMode: mode || "stealth"
+                  executionMode: (mode as "stealth" | "close") || "stealth"
                 }
                 const updated = [newShortcut, ...existing]
-                localStorage.setItem("custom_workspace_shortcuts", JSON.stringify(updated))
-                invoke("sync_shortcuts", { shortcuts: updated }).catch(() => {})
+                await persistShortcuts(updated)
               } catch {}
               setCurrentPage("target-shortcuts")
             }}
@@ -164,9 +152,24 @@ function App() {
         return (
           <CreateFullClose
             onBack={() => setCurrentPage("dashboard")}
-            onSave={(keys) => {
+            onSave={async (keys) => {
               try {
                 localStorage.setItem("custom_full_close_shortcut", JSON.stringify(keys))
+                const existing = await loadSavedShortcuts()
+                const newShortcut = {
+                  id: Date.now().toString(),
+                  name: "Close All Open Windows",
+                  apps: ["all-apps"],
+                  keys,
+                  status: "Enabled",
+                  lastUsed: "Just now",
+                  isFullClose: true,
+                  executionMode: "stealth" as const
+                }
+                const filtered = existing.filter((s: any) => !s.isFullClose && s.id !== "full-close-master")
+                const updated = [newShortcut, ...filtered]
+                await persistShortcuts(updated)
+                await invoke("set_workspace_hotkey", { keyCombo: keys.join(" + ") })
               } catch {}
               setCurrentPage("target-shortcuts")
             }}
